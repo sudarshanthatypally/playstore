@@ -40,11 +40,13 @@ class roomCreateAction extends baseAction{
     $notificationLib = autoload::loadLibrary('queryLib', 'notification');
     $result = array();
     $waitngPlayerRoomId = $roomId = 0;
-
+    date_default_timezone_set('Asia/Kolkata');
     //Get the user Detail.
     $user = $userLib->getUserDetail($this->userId);
     $inviteDetail = $inviteLib->getActiveInviteDetailForInviteToken($this->inviteToken);
+    $inviteBattleDetail = $inviteLib->getActiveBattleInviteDetailForInviteToken($this->inviteToken);
     $currentNotification = $notificationLib->getNotificationDetail($inviteDetail['notification_id']);
+    $currentBattleNotification = $notificationLib->getNotificationDetail($inviteBattleDetail['notification_id']);
 
     if($this->roomType==ROOM_TYPE_INVITE) {
       if(empty($this->inviteToken)){
@@ -66,14 +68,37 @@ class roomCreateAction extends baseAction{
         return null;
       }
     }
-
+    if($this->roomType==ROOM_TYPE_BATTLE) {
+      $invitedUser = $userLib->getUserDetail($inviteBattleDetail['user_id']);
+      if(empty($this->inviteToken)){
+        $this->setResponse('INVITE_TOKEN_MANDATORY');
+        return false;
+      }
+      if(empty($inviteBattleDetail)){
+        /*if(!empty($currentBattleNotification)){
+          $data = json_decode($currentBattleNotification['data'],true);
+          $data['is_room_active'] = CONTENT_INACTIVE;
+          //$notificationLib->updateNotification($currentBattleNotification['notification_id'], array('data'=>json_encode($data)));
+        }*/
+        $this->setResponse('INVALID_INVITE_TOKEN');
+        return false;
+      }
+      //$invitedUser = $userLib->getUserDetail($inviteBattleDetail['user_id']);
+     /* if($invitedUser['last_access_time'] < time()-3600){
+        $this->setResponse('PLAYER_OFFLINE');
+        return null;
+      }*/
+    }
     //Check requested player still searching for opponent.
     $waitingPlayerDetail = $roomLib->getWaitingPlayerBasedOnActiveStatus($this->userId);
 
-    //If player searching time out then update the status og waiting_room  for that user.
-    if($waitingPlayerDetail['entry_time'] && $waitingPlayerDetail['entry_time'] < time() - ROOM_SEARCH_TIMEOUT_TIME ){
-      $roomLib->updateWaitingRoom($waitingPlayerDetail['waiting_room_id'], array('status' => CONTENT_CLOSED));
+    if($this->roomType!=ROOM_TYPE_BATTLE && $this->roomType!=ROOM_TYPE_INVITE) {
+      //If player searching time out then update the status og waiting_room  for that user.
+      if($waitingPlayerDetail['entry_time'] && $waitingPlayerDetail['entry_time'] < time() - ROOM_SEARCH_TIMEOUT_TIME ){
+        $roomLib->updateWaitingRoom($waitingPlayerDetail['waiting_room_id'], array('status' => CONTENT_CLOSED));
+      }
     }
+    
 
     if($this->roomType==ROOM_TYPE_INVITE){
 
@@ -111,9 +136,58 @@ class roomCreateAction extends baseAction{
       }
       $roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
 
-    } 
-    else if(empty($waitingPlayerDetail) || ($waitingPlayerDetail['entry_time'] && $waitingPlayerDetail['entry_time'] < time() - ROOM_SEARCH_TIMEOUT_TIME))
-    {
+    }else if($this->roomType==ROOM_TYPE_BATTLE){
+      print_log("userId::".$this->userId);
+      $waitingRoomId = $roomLib->insertWaitingRoomPlayer(array(
+        'user_id' => $this->userId,
+        'win_status' => BATTLE_DEFAULT_STATUS,
+        'entry_time' => time(),
+        'created_at' => date('Y-m-d H:i:s'),
+        'status' => CONTENT_PENDING
+      ));
+      print_log("battleUserId::".$inviteBattleDetail['user_id']);
+      //code for user accepting the invite
+      if($inviteBattleDetail['user_id'] != $this->userId){
+         $roomId = $roomLib->insertRoom(array(
+          'user_id' => $this->userId,
+          'created_at' => date('Y-m-d H:i:s'),
+          'status' => CONTENT_ACTIVE));
+          /*$roomData= $roomLib->getRoomDetailForFriendlyBattle($inviteBattleDetail['user_id']);
+          $roomId= $roomData['room_id'];*/
+          /*$roomData= $roomLib->getRoomDetailForFriendlyBattle($inviteBattleDetail['user_id']);
+          $roomId= $roomData['room_id'];*/
+          $roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
+        /*$data = array(
+          'user_id'=>$inviteBattleDetail['user_id'],
+          'user_name'=>$user['name'],
+          'invite_token'=>$this->inviteToken,
+          'is_room_active'=>CONTENT_ACTIVE,
+          'accepted_user_id'=>$this->userId,
+          'room_id'=>$roomId
+        );*/ 
+
+        //$notification = $notificationLib->addNotification(NOTIFICATION_TYPE_INVITE_ACCEPTED,CONTENT_TYPE_USER,$inviteBattleDetail['user_id'], $data);
+        //, 'notification_id'=>$notification
+       // $inviteBattleDetail = $inviteLib->getActiveBattleInviteDetailForInviteToken($this->inviteToken);
+        $inviteLib->updateBattleInvite($inviteBattleDetail['friendly_invite_id'], array('accepted_user_id'=>$this->userId,'room_id'=>$roomId,'status'=>CONTENT_INPROGRESS));
+        //$roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
+        //$inviteBattleDetail = $inviteLib->getActiveBattleInviteDetailForInviteToken($this->inviteToken);
+        $getWaitingDetails = $roomLib->getWaitingPlayerBasedOnUserId($inviteBattleDetail['user_id']);
+        $roomLib->updateWaitingRoom($getWaitingDetails['waiting_room_id'], array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
+        
+      } else{
+        $roomId = $inviteBattleDetail['room_id'];
+        $inviteLib->updateBattleInvite($inviteBattleDetail['friendly_invite_id'], array('status'=>5));
+        //update notification data
+        /*$data = json_decode($currentBattleNotification['data'],true);
+        $data['is_room_active'] = CONTENT_INACTIVE;*/
+       // $notificationLib->updateNotification($currentBattleNotification['notification_id'], array('data'=>json_encode($data)));
+      }
+     $roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));  
+     $roomLib->deleteAllWaitingRoomUserId($this->userId,$inviteBattleDetail['user_id'],$roomId);
+     //$roomLib->deleteAllWaitingRoomUser($inviteBattleDetail['user_id'],$getWaitingDetails['waiting_room_id']);
+     //$roomLib->deleteAllWaitingRoomUser($this->userId,$waitingRoomId);
+    }else if(empty($waitingPlayerDetail) || ($waitingPlayerDetail['entry_time'] && $waitingPlayerDetail['entry_time'] < time() - ROOM_SEARCH_TIMEOUT_TIME)){
       $waitingRoomId = $roomLib->insertWaitingRoomPlayer(array(
         'user_id' => $this->userId,
         'win_status' => BATTLE_DEFAULT_STATUS,
@@ -127,7 +201,16 @@ class roomCreateAction extends baseAction{
 
       //without level
       //$matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['relics'], $user['master_stadium_id']);
-      $matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['level_id'], $user['relics'], $user['master_stadium_id']);
+      if($this->roomType==ROOM_TYPE_INVITE){
+        $matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['level_id'], $user['relics'], 1);
+      }else{
+        $matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['level_id'], $user['relics'], $user['master_stadium_id']);
+      }
+      if($this->roomType==ROOM_TYPE_BATTLE){
+        $matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['level_id'], $user['relics'], 1);
+      }else{
+        $matchingPlayer = $roomLib->getMatchingPlayer($waitingRoomId, $this->userId, $user['level_id'], $user['relics'], $user['master_stadium_id']);
+      }
       
       //if matching player found then create a room and give room_id to the Matchingplayers.
       if(!empty($matchingPlayer))

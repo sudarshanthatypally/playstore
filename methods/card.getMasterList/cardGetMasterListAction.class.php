@@ -44,7 +44,36 @@ class cardGetMasterListAction extends baseAction{
       $temp['card_description'] = $card['card_description'];
       $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
       $temp['card_type'] = $card['card_type'];
-      $temp['is_available'] = $card['is_available']; 
+     /* print_log("==================== version =========================");
+      print_log($this->iosVerId);
+      print_log($this->androidVerId);
+      print_log($card['android_version_id']);
+      print_log("==================");
+      print_log(abs($this->iosVerId));
+      print_log(abs($this->androidVerId));
+      print_log(abs($card['android_version_id']));
+      print_log("====================================================================");*/
+      /*if(empty($card['android_version_id']) || is_null($card['android_version_id']) || $card['android_version_id']==""){
+        $temp['is_available'] = $card['is_available'];
+      }elseif(empty($card['ios_version_id']) || is_null($card['ios_version_id']) || $card['ios_version_id']=="" ){
+        $temp['is_available'] = $card['is_available'];
+      }else*/
+      if(!empty($card['android_version_id']) && !empty($this->androidVerId)){
+        if(version_compare($card['android_version_id'],$this->androidVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }elseif(!empty($card['ios_version_id']) && !empty($this->iosVerId)){
+        if(version_compare($card['ios_version_id'],$this->iosVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }else{
+        $temp['is_available'] = $card['is_available'];
+      }
+      //$temp['is_available'] = $card['is_available']; 
       $temp['rarity_type_message'] = ($card['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($card['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($card['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
       $temp['card_rarity_type'] = $card['card_rarity_type'];
       $temp['bundlename']=$card['bundlename'];

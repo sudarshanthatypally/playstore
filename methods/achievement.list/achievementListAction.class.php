@@ -5,7 +5,7 @@
  * Desc   : This is a controller file for achievementList Action
  */
  /**
- * @OA\Server(url="https://epikoregalapi.com/EPIKO/playstore/rest.php")
+ * @OA\Server(url="http://35.176.252.22/EPIKO/staging/rest.php")
  * @OA\Info(title="Epiko Regal", version="1.0",
  * @OA\Contact(
  *     email="sudarshant@wharfstreetstudios.com"

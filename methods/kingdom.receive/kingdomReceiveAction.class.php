@@ -39,21 +39,55 @@ class kingdomReceiveAction extends baseAction{
     $kingdomLib = autoload::loadLibrary('queryLib', 'kingdom');
     $userLib = autoload::loadLibrary('queryLib', 'user');
     $inviteLib = autoload::loadLibrary('queryLib', 'invite');
+    $roomLib = autoload::loadLibrary('queryLib', 'room');
 
     $result = array();
+    date_default_timezone_set('Asia/Kolkata');
+    //$userLib->deleteKingdomLoginAccess();
+    //$userLib->updateToCancelKingdomChatWithLoginAccess();
+    $cancelList = $userLib->getListToCancelKingdomChatWithLoginAccess();
+    foreach($cancelList as $cl){
+        $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgList($cl['sent_by'], $cl['msg_type']);
+        $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->userId);
+       // $result['msg_delete_id']=$cl['km_id'];
+
+        $msgId = $kingdomLib->insertKingdomMsg(array(
+          'kingdom_id' => $cl['kingdom_id'],
+          'sent_by' => $cl['sent_by'],
+          'received_by' => $cl['received_by'],
+          'msg_type' => $cl['msg_type'],
+          'chat_type' => $cl['chat_type'],
+          'battle_type' => $cl['battle_type'],
+          'battle_state' => 4,
+          'message' => $cl['message'],
+          'msg_delete_id' => $cl['km_id'], 
+          'created_at' => date('Y-m-d H:i:s')
+      ));
+      //$result['last_msg_id']=$msgId;
+    }
+    $isExisted = $userLib->getKingdomLoginAccess($this->userId);
+    
+    if(empty($isExisted)){
+      $userLib->insertKingdomLoginAccess($this->userId, array(
+        'user_id' => $this->userId,
+        'last_access' => time(),
+        'created_date' => date('Y-m-d H:i:s')));
+    }else{
+      $userLib->updateKingdomLoginAccess($this->userId, array('last_access' => time()));
+    }
     
     // Get the List of all the Master Card
     //$cardList = $cardLib->getMasterCardListWithStadium();
     $kingdomMsgList=$kingdomLib->getKingdomMsgList($this->kingdomId, $this->lastMsgId);
-    $msgAvailable=$kingdomLib->getCheckMsgAvailableCount($this->kingdomId);
+    $msgAvailable=$kingdomLib->getCheckMsgAvailableCount($this->kingdomId); 
     //print_log("list::".$kingdomMsgList);
     $msg_cnt=0;
     foreach ($kingdomMsgList as $msg)
     {
-      try{
+      /*try{
         if($msg['msg_type']==3 && $msg['battle_state']==1){
           $uD = $userLib->getUserDetail($msg['sent_by']);
-          if($uD['last_access_time'] < time()-2){
+          if($uD['last_access_time'] < time()){
             //$kingdomLib->deleteKingdomRequestedMsgType($msg['sent_by'], $msg['msg_type']);
             //$deletemsgId = $kingdomLib->deleteKingdomRequestedMsgList($msg['sent_by'], $msg['msg_type']);
             $updateMs = $kingdomLib->updateKingdomReqMessage($msg['km_id'], array('battle_state'=>6));
@@ -64,7 +98,7 @@ class kingdomReceiveAction extends baseAction{
       }catch(Exception $e) {
         $this->setResponse('SUCCESS');
         return array('Caught exception: '=>$e->getMessage()."\n");         
-      }
+      }*/
       
         
       
@@ -72,12 +106,77 @@ class kingdomReceiveAction extends baseAction{
       $kUser = $kingdomLib->getKingdomUserDetail($msg['sent_by']);
       $kingdomUserInfo = $temp = $temp1 = array();
       $userV = $userLib->getUserDetail($msg['sent_by']);
-      $temp['last_msg_id'] = $msg['km_id'];
+      $temp['last_msg_id'] = !empty($msgId)?$msgId:$msg['km_id'];
       $temp['kingdom_id'] = $msg['kingdom_id'];
       $temp['sent_by_id'] = $msg['sent_by'];
       $temp['received_by_id'] = $msg['received_by']; 
       $temp['kingdom_msg_type'] = $msg['msg_type'];
       $temp['kingdom_chat_type'] = $msg['chat_type']; 
+      //&& $msg['battle_state']
+      if($msg['msg_type']==3){
+        $frndbattleHist = $userLib->getFriendlyBattleHistoryList($this->userId, $msg['room_id']);
+       if(empty($frndbattleHist)){
+          $frndbattleHist = $userLib->getFriendlyBattleHistoryList($msg['sent_by'], $msg['room_id']);
+          $tempB = array();
+          foreach ($frndbattleHist as $bhList) {
+              if(!empty($bhList['room_id'])){
+                $userTrophies = $roomLib->getMatchPlayersTrophies($bhList['user_winstatus'], $bhList['user_stadium']);
+                $opponentTrophies = $roomLib->getMatchPlayersTrophies($bhList['opponent_winstatus'], $bhList['opp_stadium']);
+                $temp2=array();
+                $temp2['room_id'] = $bhList['room_id'];
+                //$temp1['user_id'] = $bhList['user_id'];
+                //$temp1['opponent_id'] = $bhList['opponent_id']; 
+                $temp2['player_crown_count'] = $bhList['opponent_circlet'];
+                $temp2['opponent_crown_count'] = $bhList['user_circlet'];
+                $temp2['playerBattleResult'] = $bhList['opponent_winstatus'];
+                $temp2['match_status'] = $bhList['opponent_winstatus'];
+                $temp2['playerTrophies'] = $bhList['opponent_trophies'];
+                $temp2['opponentTrophies'] = $bhList['user_trophies'];
+                $temp2['opponentBattleResult'] = $bhList['user_winstatus'];
+                $temp2['PlayerBattletrophies'] = $opponentTrophies;
+                $temp2['opponentBattletrophies'] = $userTrophies;
+                $temp2['battleTime'] = $bhList['created_at'];
+                //$temp1['battle_player_deck']= json_decode($bhList(['userDeckLst']));
+                //$temp1['battle_opp_deck']= json_decode($bhList(['oppDeckLst']));
+                //$roomPlayers = $roomLib->getPlayersForRoomId($bhList['room_id']);
+                $users = $roomLib->matchingPlayerDetails($bhList['opponent_id'],$msg['sent_by'],$bhList['oppDeckLst'],$bhList['userDeckLst']);
+                $temp2['battle_player']= $users; 
+                //$temp1['battle_players']= json_decode($bhList(['userDeckLst']));
+                $tempB = $temp2; 
+              }  
+            }
+        }else{
+          $tempB = array();
+          foreach ($frndbattleHist as $bhList) {
+              if(!empty($bhList['room_id'])){
+                $userTrophies = $roomLib->getMatchPlayersTrophies($bhList['user_winstatus'], $bhList['user_stadium']);
+                $opponentTrophies = $roomLib->getMatchPlayersTrophies($bhList['opponent_winstatus'], $bhList['opp_stadium']);
+                $temp2=array();
+                $temp2['room_id'] = $bhList['room_id'];
+                //$temp1['user_id'] = $bhList['user_id'];
+                //$temp1['opponent_id'] = $bhList['opponent_id']; 
+                $temp2['player_crown_count'] = $bhList['user_circlet'];
+                $temp2['opponent_crown_count'] = $bhList['opponent_circlet'];
+                $temp2['playerBattleResult'] = $bhList['user_winstatus'];
+                $temp2['match_status'] = $bhList['user_winstatus'];
+                $temp2['playerTrophies'] = $bhList['user_trophies'];
+                $temp2['opponentTrophies'] = $bhList['opponent_trophies'];
+                $temp2['opponentBattleResult'] = $bhList['opponent_winstatus'];
+                $temp2['PlayerBattletrophies'] = $userTrophies;
+                $temp2['opponentBattletrophies'] = $opponentTrophies;
+                $temp2['battleTime'] = $bhList['created_at'];
+                //$temp1['battle_player_deck']= json_decode($bhList(['userDeckLst']));
+                //$temp1['battle_opp_deck']= json_decode($bhList(['oppDeckLst']));
+                //$roomPlayers = $roomLib->getPlayersForRoomId($bhList['room_id']);
+                $users = $roomLib->matchingPlayerDetails($this->userId, $bhList['opponent_id'],$bhList['userDeckLst'],$bhList['oppDeckLst']);
+                $temp2['battle_player']= $users; 
+                //$temp1['battle_players']= json_decode($bhList(['userDeckLst']));
+                $tempB = $temp2; 
+              } 
+          }
+        }
+        $friendlyBattleResult = $tempB; 
+      }
 
       if($msg['msg_type']==3 && $msg['sent_by']==$this->userId){
         if($msg['battle_state']==4){
@@ -118,10 +217,14 @@ class kingdomReceiveAction extends baseAction{
       $temp1['battle_type'] = $msg['battle_type'];
       $temp1['battle_state']= $bstate;
       $temp1['requested_userid']= $msg['sent_by'];  
+      $temp1['battle_isavailable']= $msg['battle_isavailable'];  
       $temp1['result']= "";
       $temp1['battle_trophies']= "";
       $temp1['battle_token']= $frndlyBattleDetails['invite_token'];
       if($msg['msg_type']==3){
+        if($msg['battle_state']==3){
+          $temp1['kingdomFriendly_BattleHistory']=$friendlyBattleResult;
+        }
         $temp['kingdomfrindbattle']=$temp1;
       }
       $temp['message'] = $msg['message'];
@@ -154,7 +257,10 @@ class kingdomReceiveAction extends baseAction{
       $result[] = $temp;  
       $lst_id = $msg['km_id'];
       $uId=$msg['sent_by'];
-      $msg_cnt++;
+      if($msg['battle_state']!=5 && $msg['battle_state']!=4){
+        $msg_cnt++;
+      }
+      
     }
     //print_log($lst_id);
     if(!empty($lst_id)){
@@ -165,7 +271,7 @@ class kingdomReceiveAction extends baseAction{
       //print_log("lastId: ".$lst_id);
       //print_log("uId: ".$this->userId);
     }
-    $msg_cnt=!empty($msgAvailable)?1:0;
+    $msg_cnt=!empty($msgAvailable)?$msgAvailable:0;
       
     
     $this->setResponse('SUCCESS');

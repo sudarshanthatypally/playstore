@@ -1,12 +1,12 @@
 <?php
 /**
  * Author : Abhijth Shetty
- * Date   : 08-11-2019
- * Desc   : This is a controller file for debugUnlockCards Action 
+ * Date   : 29-12-2017
+ * Desc   : This is a controller file for cardGetMasterList Action
  */
-class debugUnlockCardsAction extends baseAction{
-  /**
-   * @OA\Get(path="?methodName=debug.unlockCards", tags={"Debug"}, 
+class questListAction extends baseAction{
+	/**
+   * @OA\Get(path="?methodName=quest.list", tags={"Quest"}, 
    * @OA\Parameter(parameter="applicationKey", name="applicationKey", description="The applicationKey specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Parameter(parameter="user_id", name="user_id", description="The user ID specific to this event",
@@ -30,16 +30,46 @@ class debugUnlockCardsAction extends baseAction{
    */
   public function execute()
   {
-    $cardLib = autoload::loadLibrary('queryLib', 'card');
-    $masterLib = autoload::loadLibrary('queryLib', 'master');
-    $result = array();
-    
-    // $masterStadium = $masterLib->getMasterStadiumList();
-    for($i=1; $i<=4; $i++){
-      //$cardLib->cardUnlock($this->userId, $i);
-      $cardLib->cardUnlockWithVersion($this->userId, $i, $this->androidVerId, $this->iosVerId);
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
+    $result = $cardId = $temp = array();
+
+    // Get the List of all the Master Card
+    $questList = $questLib->getMasterQuestDetail();
+    foreach ($questList as $qlist)
+    {
+      $cardPropertyInfo = $temp = array();
+      $temp['master_quest_id'] = $qlist['master_quest_id'];
+      $temp['title'] = $qlist['title'];
+      $temp['description'] = $qlist['description'];
+      if($qlist['frequency'] == 0){
+        $claim_freq = "Anytime";
+      }elseif($qlist['frequency'] == 1){
+        $claim_freq = "Once";
+      }elseif($qlist['frequency'] == 2){
+        $claim_freq = "Daily";
+      }elseif($qlist['frequency'] == 3){
+        $claim_freq = "Weekly";
+      }elseif($qlist['frequency'] == 4){
+        $claim_freq = "Monthly";
+      }else{
+        $claim_freq = "Anytime";
+      }
+      $temp['claim_freq'] = $claim_freq;
+      $temp['crystal_reward_bonus'] = $qlist['crystal'];
+      $temp['gold_reward_bonus'] = $qlist['gold'];
+      $temp['trophy_reward_bonus']=$qlist['trophies'];
+      $temp['current_slider_value']=0;
+      $temp['slider_maxvalue']=($qlist['slide_maxvalue']>0)?$qlist['slide_maxvalue']:0;
+      if($qlist['master_quest_id']==1){
+        
+      }
+      $temp['is_achieved']=0;
+      $temp['isclaimed']=0;
+      $result[] = $temp;  
+      
     }
+
     $this->setResponse('SUCCESS');
-    return $result;
-  }  
+    return array('quest_list' => $result);
+  }
 }

@@ -31,7 +31,20 @@ class userClaimRewardInitialize extends baseInitialize{
       "default"=>"",
       "description"=>"cube_upgrade_id"
     ); 
- 
+    $parameter["androidVerId"] = array(
+      "name" => "android_version_id",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "android_version_id"
+    );
+    $parameter["iosVerId"] = array(
+      "name" => "ios_version_id",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "ios_version_id"
+    );
     return $parameter;
   }
 }

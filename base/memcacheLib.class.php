@@ -1,7 +1,7 @@
 <?php
 /**
-  * Author : Sudarshan Thatypally
-  * Date   : 27-05-2021
+  * Author : Abhijith Shetty
+  * Date   : 27-05-2014
   * Description : Handles memcache connection and data transfer
   */
 

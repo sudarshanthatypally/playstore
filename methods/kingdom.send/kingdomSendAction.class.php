@@ -48,6 +48,7 @@ class kingdomSendAction extends baseAction
     $kingdomLib = autoload::loadLibrary('queryLib', 'kingdom');
     $inviteLib = autoload::loadLibrary('queryLib', 'invite');
     //$notificationLib = autoload::loadLibrary('queryLib', 'notification');
+    date_default_timezone_set('Asia/Kolkata');
     $result = array(); 
     $userList = array();
     $userDetails = array();
@@ -55,7 +56,7 @@ class kingdomSendAction extends baseAction
     //Get the user Detail.
     $user = $userLib->getUserDetail($this->userId);
     //$user_cnt = $kingdomLib->checkUserAvailable($this->userId);
-    date_default_timezone_set('Asia/Kolkata');
+    
 //echo date('d-m-Y H:i');
     if($this->kingdomMsgType==3){
       if($this->battleState==4){
@@ -72,13 +73,34 @@ class kingdomSendAction extends baseAction
           $this->setResponse('PLAYER_OFFLINE');
           return null;
         }*/
+        $kmMsg = $kingdomLib->getKingdomBattleByStateMsgType($this->receiverId,$this->kingdomMsgType,1);
         $kingdomBattleData = $kingdomLib->getKingdomBattleByState($this->receiverId);
-        $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgList($this->receiverId, $this->kingdomMsgType);
-        //print_log("deleted::".$deletemsgId);
-        //print_log("deleted id from fetched::".$kingdomBattleData['km_id']);
-        $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->receiverId);
-        $result['msg_delete_id']=$kingdomBattleData['km_id'];
-        //$result['battle_state'] = $this->battleState; // 1 for requested , 2 for pending, 3 for result
+        if($kmMsg['battle_isavailable']!=1){
+            $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgList($this->receiverId, $this->kingdomMsgType);
+            //print_log("deleted::".$deletemsgId);
+            //print_log("deleted id from fetched::".$kingdomBattleData['km_id']);
+           
+            //$result['battle_state'] = $this->battleState; // 1 for requested , 2 for pending, 3 for result
+          }
+          $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->receiverId);
+          $result['msg_delete_id']=$kingdomBattleData['km_id'];
+      }elseif($this->battleState==10){
+        $kingdomMsId = $kingdomLib->getKingdomBattleByState($this->userId);
+        if($this->battleIsAvailable==1){
+          $kingdomLib->updateKingdomReqMessage($kingdomMsId['km_id'], array(
+            'battle_isavailable' => 1,
+            'updated_at' => date('Y-m-d H:i:s')
+          )); 
+        }
+        if($this->battleIsAvailable==0){
+          $kingdomLib->updateKingdomReqMessage($kingdomMsId['km_id'], array(
+            'battle_isavailable' => 0,
+            'updated_at' => date('Y-m-d H:i:s')
+          )); 
+        }
+        $result['battle_isavailable'] = $this->battleIsAvailable; 
+        $this->setResponse('SUCCESS');
+        return $result;
       }
       else{
         $result['battle_state'] = 1; // 1 for requested , 2 for pending, 3 for result
@@ -86,19 +108,22 @@ class kingdomSendAction extends baseAction
       }
     }
     
-   
-    $msgId = $kingdomLib->insertKingdomMsg(array(
-      'kingdom_id' => $this->kingdomId,
-      'sent_by' => $this->senderId,
-      'received_by' => $this->receiverId,
-      'msg_type' => $this->kingdomMsgType,
-      'chat_type' => $this->kingdomChatType,
-      'battle_type' => $this->battleType,
-      'battle_state' => empty($this->battleState)?"1":$this->battleState,
-      'message' => $this->kingdomMsg,
-      'msg_delete_id' => empty($kingdomBattleData['km_id'])?"":$kingdomBattleData['km_id'], 
-      'created_at' => date('Y-m-d H:i:s')
-  ));
+    $kmMsg = $kingdomLib->getKingdomBattleByStateMsgType($this->receiverId,$this->kingdomMsgType,1);
+    if($kmMsg['battle_isavailable']!=1){
+      $msgId = $kingdomLib->insertKingdomMsg(array(
+        'kingdom_id' => $this->kingdomId,
+        'sent_by' => $this->senderId,
+        'received_by' => $this->receiverId,
+        'msg_type' => $this->kingdomMsgType,
+        'chat_type' => $this->kingdomChatType,
+        'battle_type' => $this->battleType,
+        'battle_state' => empty($this->battleState)?"1":$this->battleState,
+        'message' => $this->kingdomMsg,
+        'msg_delete_id' => empty($kingdomBattleData['km_id'])?"":$kingdomBattleData['km_id'], 
+        'created_at' => date('Y-m-d H:i:s')
+    ));
+    }
+    
     /*if(!empty($msgId)){
 
     }*/
@@ -114,14 +139,18 @@ class kingdomSendAction extends baseAction
     }
 
     if($this->kingdomMsgType==3 && $bstate==1){
+      
       //add 5 link per hour limitation
       $userInvites = $inviteLib->getFriendlyInviteListWithLimit($this->userId, MAX_INVITE_PER_HOUR);
-      if(sizeof($userInvites)==MAX_INVITE_PER_HOUR && strtotime($userInvites[MAX_INVITE_PER_HOUR-1]['created_at']) > time()-3600){
+      /*if(sizeof($userInvites)==MAX_INVITE_PER_HOUR && strtotime($userInvites[MAX_INVITE_PER_HOUR-1]['created_at']) > time()-3600){
         $result['next_invite'] = (strtotime($userInvites[MAX_INVITE_PER_HOUR-1]['created_at'])+3600)-time();
         $this->setResponse('MAX_INVITE_LIMIT_REACHED');
         return $result;
-      }
-      $inviteToken = md5(md5($this->userId).md5($this->access_token).md5(time()));
+      }*/
+      $accessToken = (isset($user['access_token']) ? $user['access_token'] : false);
+      $inviteToken = md5(md5($this->userId).md5($accessToken).md5(time()));
+      print_log($inviteToken);
+     // $inviteToken = md5(md5($this->userId).md5($user['access_token']).md5(time()));
 
       $inviteLib->insertFriendlyInvite(array('user_id'=>$this->userId, 
         'invite_token'=>$inviteToken,
@@ -133,19 +162,21 @@ class kingdomSendAction extends baseAction
     }else{
       $userName="Guest ".$this->userId; 
     }
+    $kmMsg = $kingdomLib->getKingdomBattleByStateMsgType($this->receiverId,$this->kingdomMsgType,1);
     $temp1['battle_type'] = $this->battleType;
     $temp1['battle_state']= $bstate;
+    $temp1['battle_isavailable'] = !empty($kmMsg['battle_isavailable'])?$kmMsg['battle_isavailable']:0;
     $temp1['requested_userid']= $this->senderId;  
     $temp1['result']= "";
     $temp1['battle_trophies']= "";
-    $temp1['referrer_name'] = $userName;
+    $temp1['referrer_name'] = $userName;  
     $temp1['battle_token']= !empty($inviteToken)?$inviteToken:$frndlyBattleDetails['invite_token'];
     
 
 
 
     $userV = $userLib->getUserDetail($this->userId);
-    $result['last_msg_id']=$msgId;
+    $result['last_msg_id']=!empty($msgId)?$msgId:"";
     $result['kingdom_id'] = $this->kingdomId;
     $result['sent_by_id'] = $this->senderId;
     $result['received_by_id'] = $this->receiverId;

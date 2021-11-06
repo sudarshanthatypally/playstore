@@ -4,7 +4,7 @@ server with default setting (user 'root' with no password) */
 $db_server = "epiko-db.cgkf0qydg6ah.eu-west-2.rds.amazonaws.com";
 $db_username = "db_admin";
 $db_password = "TtKQRrorDKAp5cK0eczG";
-$db_name = "playstore";
+$db_name = "playstorev1";
 
 $mysqli = new mysqli($db_server, $db_username, $db_password, $db_name);
  

@@ -67,7 +67,8 @@ class userTutorialRewardAction extends baseAction{
       $matchStatusReward = $rewardLib->getMasterMatchStatusRewardForStadium($this->winStatus, $maxStadiumId);
     }
     $userParamList['gold'] = $user['gold'] + $matchStatusReward['gold'];
-    $userParamList['crystal'] =$user['crystal']+DEFAULT_CRYSTAL;
+    //$userParamList['crystal'] =$user['crystal'];
+    $userParamList['crystal'] =DEFAULT_CRYSTAL;
     $userLib->updateUser($this->userId, $userParamList);
 
     $cubeBonus['cube_id'] = 1;
@@ -99,14 +100,14 @@ class userTutorialRewardAction extends baseAction{
                   'created_at' => date('Y-m-d H:i:s'),
                   'status' => CUBE_ACTIVE));
 
-    } 
+    }  
 
     $responseFormat = array('win_status' => $this->winStatus,
                         'master_stadium_id' => $user['master_stadium_id'],
                         'total_gold' => (empty($userParamList['gold'])?$user['gold']:$userParamList['gold']),
                         'gold_bonus' => $matchStatusReward['gold'],
                         'total_crystal' => (empty($userParamList['crystal'])?$user['crystal']:$userParamList['crystal']),
-                        'crystal_bonus' => DEFAULT_CRYSTAL, 
+                        'crystal_bonus' => DEFAULT_CRYSTAL,
                         'cube_bonus' =>  (empty($cubeBonus['cube_id'])?"":$cubeBonus)
                       );
 

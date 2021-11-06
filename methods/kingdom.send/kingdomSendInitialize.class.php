@@ -57,6 +57,20 @@ class kingdomSendInitialize extends baseInitialize{
       "default"=>"",
       "description"=>"Battle State"
     ); 
+    $parameter["battleIsAvailable"] = array(
+      "name"=>"battle_isavailable",
+      "type"=>"text",
+      "required"=>false,
+      "default"=>"",
+      "description"=>"Battle Is Available"
+    );
+    $parameter["battleMsgIg"] = array(
+      "name"=>"battle_msg_id",
+      "type"=>"text",
+      "required"=>false,
+      "default"=>"",
+      "description"=>"Battle Msg id"
+    ); 
     $parameter["kingdomMsg"] = array(
       "name"=>"kingdom_msg",
       "type"=>"text",

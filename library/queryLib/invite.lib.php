@@ -49,7 +49,17 @@ class invite{
     $result = database::doSelectOne($sql, array('userId'=>$userId));
     return $result;
   }
-  
+  public function getFriendlyInviteDetailByOppId($oppId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM friendly_invite
+            WHERE user_id=:oppId
+            ORDER BY friendly_invite_id DESC, created_at DESC
+            LIMIT 1";
+
+    $result = database::doSelectOne($sql, array('oppId'=>$oppId));
+    return $result;
+  }
 
   public function getInviteDetail($inviteId, $options=array())
   {
@@ -130,8 +140,8 @@ class invite{
   {
     $sql = "SELECT *
             FROM friendly_invite
-            WHERE invite_token=:inviteToken
-            AND status<>".CONTENT_ACCEPTED;
+            WHERE invite_token=:inviteToken"; 
+           // AND status<>".CONTENT_ACCEPTED;
 
     $result = database::doSelectOne($sql, array('inviteToken'=>$inviteToken));
     return $result;

@@ -37,7 +37,7 @@ class inviteCreateAction extends baseAction{
     $inviteLib = autoload::loadLibrary('queryLib', 'invite');
     $userLib = autoload::loadLibrary('queryLib', 'user');
     $result = array();
-    
+    date_default_timezone_set('Asia/Kolkata');
     $userDetail = $userLib->getUserDetail($this->userId); 
     //add 5 link per hour limitation
     $userInvites = $inviteLib->getInviteListWithLimit($this->userId, MAX_INVITE_PER_HOUR);
@@ -46,8 +46,9 @@ class inviteCreateAction extends baseAction{
       $this->setResponse('MAX_INVITE_LIMIT_REACHED');
       return $result;
     }
-    $inviteToken = md5(md5($this->userId).md5($this->access_token).md5(time()));
-
+    //$accessToken = $this->access_token;
+    $accessToken = (isset($userDetail['access_token']) ? $userDetail['access_token'] : false);
+    $inviteToken = md5(md5($this->userId).md5($accessToken).md5(time()));
     $inviteLib->insertInvite(array('user_id'=>$this->userId, 
       'invite_token'=>$inviteToken,
       'status'=>CONTENT_ACTIVE,

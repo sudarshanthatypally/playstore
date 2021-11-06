@@ -121,12 +121,15 @@ class kingdomJoinAction extends baseAction
         return new ArrayObject();
     }
 
+    $kd= $kingdomLib->getKingdomTotalRelics($this->kingdomId);
+
     $result['kingdom_id'] = $this->kingdomId;
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
     $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
+    $result['trophies']=$kd['total'];
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];
     $result['kingdom_req_cup_amt'] = $kingdomDetails['kingdom_req_cup_amt'];
     $result['kingdom_success'] = $kingdomStatus;

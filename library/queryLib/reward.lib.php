@@ -103,7 +103,7 @@ class reward{
     return $result;
   }
 
-  public function claimCubeRewardedDuringMatch($userId, $userRewardId, $claimReward, $claimCrystalUpgrade=array())
+  public function claimCubeRewardedDuringMatch($userId, $userRewardId, $claimReward, $andVer, $iosVer, $claimCrystalUpgrade=array())
   {
     $userLib = autoload::loadLibrary('queryLib', 'user');
     $cubeLib = autoload::loadLibrary('queryLib', 'cube');
@@ -116,7 +116,7 @@ class reward{
 
     $cubeRewardDetail = $cubeLib->getCubeRewardDetailForStadium($userReward['cube_id'], $userReward['master_stadium_id']);
     /*$maxTime = ($userReward['cube_id'] == CUBE_FIRECRACKER)?UNLOCK_CUBE_FIRECRACKER_TIMEOUT:(($userReward['cube_id'] == CUBE_BOMB)?UNLOCK_CUBE_BOMB_TIMEOUT:(($userReward['cube_id'] == CUBE_METALBOMB) ? UNLOCK_CUBE_METALBOMB_TIMEOUT : UNLOCK_CUBE_ROCKET_TIMEOUT));
-    $favcolor = "red";*/
+    $favcolor = "red";*/ 
 
     switch ($userReward['cube_id']) {
       case CUBE_FIRECRACKER:
@@ -146,11 +146,13 @@ class reward{
     //$result['reward_unlock_time'] = (($userReward['claimed_at'] == 0) || (($userReward['claimed_at']+$maxTime) - time()<0))?0:(($userReward['claimed_at']+$maxTime) - time());
     $result['reward_status'] = ($userReward['status'] ==  CUBE_ON_PROCESS && $result['reward_unlock_time'] <= 0)?CUBE_CAN_BE_CLAIMED:$userReward['status'];
     $result['cube_id'] = $userReward['cube_id'];
-    $crystalDetail = $cubeLib->getCubeRewardDetailForStadium($userReward['cube_id'], $userReward['master_stadium_id']);  
-    /*if($userDetail['crystal'] < $crystalDetail['crystal_cost'])
-    {
-      $this->setResponse('CRYSTAL_IS_NOT_ENOUGH');
-      return new ArrayObject();
+    $crystalDetail = $cubeLib->getCubeRewardDetailForStadium($userReward['cube_id'], $userReward['master_stadium_id']);   
+   /* if($userReward['status'] ==  CUBE_ON_PROCESS){
+      if($userDetail['crystal'] < $crystalDetail['crystal_cost'])
+      {
+        $this->setResponse('CRYSTAL_IS_NOT_ENOUGH');
+        return new ArrayObject();
+      }
     }else{*/
       if($claimCrystalUpgrade['cube_upgrade_id']==3){
         $crystalDetail = $cubeLib->getCubeRewardDetailForStadium($userReward['cube_id'], $userReward['master_stadium_id']);  
@@ -191,7 +193,8 @@ class reward{
         $result['reward_unlock_time'] = 0;
         $cardIdList = $rareCardList = $ultraRareCardList = $cardList = array();
         $cardCount = 0;
-        $cardIdList = $rewardLib->getRandomCard($cubeRewardDetail, $userReward['master_stadium_id']);
+        //$cardIdList = $rewardLib->getRandomCard($cubeRewardDetail, $userReward['master_stadium_id']);
+        $cardIdList = $rewardLib->getRandomCardWithVersion($cubeRewardDetail, $userReward['master_stadium_id'], $andVer, $iosVer);
         
 
         foreach($cardIdList as $cardId => $cardIdVal){
@@ -300,6 +303,7 @@ class reward{
     $temp = array();
 
     $temp["master_card_id"] = $cardId;
+    $temp['title'] = $masterCard["title"];
     $temp['card_level'] = $cardLevelId = (empty($userCard['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCard["level_id"];
     //$userCardCount = $cardCount;
     if(empty($userCard['user_card_count'])){
@@ -572,6 +576,168 @@ class reward{
     return $cardListValues; 
   }
 
+  public function getRandomCardWithVersion($cubeRewardDetail, $masteStadiumId, $andVer, $iosVer)
+  {
+    $cardLib = autoload::loadLibrary('queryLib', 'card');
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $rewardLib = autoload::loadLibrary('queryLib', 'reward');
+    $cardIdList = $rareCardList = $ultraRareCardList = $cardList = array();
+    $cardCount = 0;
+    $excludeCardId = 0;
+    $cardListValues = null;
+    $cardCountV = 0;
+    if($cubeRewardDetail['common'] > 0)
+    {
+        $probability = rand(1,100);
+        $minSplitValueCommon = $cubeRewardDetail['common_card_count'] > 24 ? 24:$cubeRewardDetail['common_card_count'];
+        $splitCommonValues = $rewardLib->getSplitAfterCalculationValues($cubeRewardDetail['common_card_count'], $cubeRewardDetail['common'], $minSplitValueCommon);
+        $commonCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_COMMON, $probability, $excludeCardId, $cubeRewardDetail['common'],$andVer, $iosVer);
+        if(count($commonCardList) < $cubeRewardDetail['common'])
+        {
+          if(!empty($commonCardList))
+            {
+              foreach($commonCardList as $item) {
+                $cardIdList[$cardCount++] = $item['master_card_id'];
+              }
+              //$excludeCardId = implode(',',$cardIdList);
+            }      
+            $probability = 100;
+            $commonCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_COMMON, $probability, $excludeCardId, $cubeRewardDetail['common'],$andVer, $iosVer);
+            if(!empty($commonCardList))
+            {
+              foreach($commonCardList as $commonCard) {
+                $cardIdList[$cardCount++] = $commonCard['master_card_id'];
+              }
+            }
+        }else{
+            foreach($commonCardList as $commonCard) {
+              $cardIdList[$cardCount++] = $commonCard['master_card_id'];
+            }
+        }
+
+        $excludeCV[] = $splitCommonValues;
+        //implode(',', $splitCommonValues);
+        //$cardListValues = $rewardLib->combine_arr($cardIdList, $splitCommonValues);
+        $excludeCardId = implode(',',$cardIdList);
+          
+    }
+    if($cubeRewardDetail['rare'] > 0)
+    {
+      $probability = rand(1,100);
+      $minSplitValueRare = $cubeRewardDetail['rare_card_count'] > 24 ? 24:$cubeRewardDetail['rare_card_count'];
+      $splitRareValues = $rewardLib->getSplitAfterCalculationValues($cubeRewardDetail['rare_card_count'], $cubeRewardDetail['rare'], $minSplitValueRare);
+      $rareCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_RARE, $probability, $excludeCardId, $cubeRewardDetail['rare'],$andVer, $iosVer);
+
+      if(count($rareCardList) < $cubeRewardDetail['rare'])
+      {
+        if(!empty($rareCardList))
+        {
+          foreach($rareCardList as $item) {
+            $cardIdList[$cardCount++] = $item['master_card_id'];
+          }
+          $excludeCardId = implode(',',$cardIdList);
+        }
+        $probability = 100;
+        $rareCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_RARE, $probability, $excludeCardId, $cubeRewardDetail['rare'],$andVer, $iosVer);
+        if(!empty($rareCardList))
+        {
+          foreach($rareCardList as $rareCard) {
+            $cardIdList[$cardCount++] = $rareCard['master_card_id'];
+          }
+        }
+      } else
+      {
+        foreach($rareCardList as $rareCard) {
+          $cardIdList[$cardCount++] = $rareCard['master_card_id'];
+        }
+      }
+      
+      $excludeCV[] = $splitRareValues;
+      //$excludeCV = implode(',', $splitRareValues);
+      $excludeCardId = implode(',',$cardIdList);
+
+    }
+
+    if($cubeRewardDetail['epic'] > 0)
+    {
+      $probability = rand(1,100);
+      $minSplitValueEpic = $cubeRewardDetail['epic_card_count'] > 24 ? 24:$cubeRewardDetail['epic_card_count'];
+      $splitEpicValues = $rewardLib->getSplitAfterCalculationValues($cubeRewardDetail['epic_card_count'], $cubeRewardDetail['epic'], $minSplitValueEpic);
+      $epicCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_EPIC, $probability, $excludeCardId, $cubeRewardDetail['epic'],$andVer, $iosVer);
+      if(count($epicCardList) < $cubeRewardDetail['epic'])
+      {
+        if(!empty($epicCardList))
+        {
+          foreach($epicCardList as $item) {
+            $cardIdList[$cardCount++] = $item['master_card_id'];
+          }
+          //$excludeCardId = implode(',',$cardIdList);
+        }
+
+        $probability = 100;
+        $epicCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_EPIC, $probability, $excludeCardId, $cubeRewardDetail['epic'],$andVer, $iosVer);
+
+        foreach($epicCardList as $epicCard) {
+          $cardIdList[$cardCount++] = $epicCard['master_card_id'];
+        }
+      } else
+      {
+        foreach($epicCardList as $epicCard) {
+          $cardIdList[$cardCount++] = $epicCard['master_card_id'];
+        }
+      }
+        $excludeCV[] = $splitEpicValues;
+        //$excludeCV = implode(',', $splitEpicValues);
+        $excludeCardId = implode(',',$cardIdList);
+    }
+
+    if($cubeRewardDetail['ultra_epic'] > 0)
+    {
+      $probability = rand(1,100);
+      $minSplitValueUltraEpic = $cubeRewardDetail['ultra_epic_card_count'] > 24 ? 24:$cubeRewardDetail['ultra_epic_card_count'];
+      $splitUltraEpicValues = $rewardLib->getSplitAfterCalculationValues($cubeRewardDetail['ultra_epic_card_count'], $cubeRewardDetail['ultra_epic'], $minSplitValueUltraEpic);
+      $ultraEpicCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_ULTRA_EPIC, $probability, $excludeCardId, $cubeRewardDetail['ultra_epic'],$andVer, $iosVer);
+      if(count($ultraEpicCardList) < $cubeRewardDetail['ultra_epic'])
+      {
+        if(!empty($ultraEpicCardList))
+        {
+          foreach($ultraEpicCardList as $item) {
+            $cardIdList[$cardCount++] = $item['master_card_id'];
+          }
+          //$excludeCardId = implode(',',$cardIdList);
+        }
+
+        $probability = 100;
+        $ultraEpicCardList = $cardLib->getMasterCardListBasedOnStadiumAndRarityWithVersion($masteStadiumId, CARD_RARITY_ULTRA_EPIC, $probability, $excludeCardId, $cubeRewardDetail['ultra_epic'],$andVer, $iosVer);
+
+        foreach($ultraEpicCardList as $ultraEpicCard) {
+          $cardIdList[$cardCount++] = $ultraEpicCard['master_card_id'];
+        }
+      } else
+      {
+        foreach($ultraEpicCardList as $ultraEpicCard) {
+          $cardIdList[$cardCount++] = $ultraEpicCard['master_card_id'];
+        }
+      }
+     
+        $excludeCV[] = $splitUltraEpicValues;
+        //$excludeCV = implode(',', $splitUltraEpicValues);
+      $excludeCardId = implode(',',$cardIdList);
+    }
+
+    //return $cardIdList;
+    //$a = $rewardLib->array_flatten($excludeCV);
+    $newArray = array();
+    //$nArray = array();
+    for ($i=0; $i < $cubeRewardDetail['card_count']; $i++) { 
+      foreach($excludeCV[$i] as $ecv){
+        $newArray[] = $ecv;         
+      }
+      //array_push($nArray, $newArray[$i]);
+    }
+    $cardListValues = $rewardLib->combine_arr($cardIdList, $newArray);
+    return $cardListValues; 
+  }
   public function getUserRewardListForDate($userId, $cubeId, $options=array())
   {
     $sql = "SELECT *

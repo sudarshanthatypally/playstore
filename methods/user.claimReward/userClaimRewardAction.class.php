@@ -97,9 +97,9 @@ class userClaimRewardAction extends baseAction{
       //Claim titanium, dimond, Platinum cube.
       if(($userReward['cube_id'] == CUBE_FIRECRACKER || $userReward['cube_id'] == CUBE_BOMB || $userReward['cube_id'] == CUBE_ROCKET || $userReward['cube_id'] == CUBE_METALBOMB || $userReward['cube_id'] == CUBE_DYNAMITE) && $userReward['status'] != CONTENT_CLOSED){
         if(!empty($this->cubeUpgradeId) && $this->cubeUpgradeId==3){
-          $result = $rewardLib->claimCubeRewardedDuringMatch($this->userId, $this->userRewardId, $this->claimReward, array('cube_upgrade_id' => $this->cubeUpgradeId)); 
+          $result = $rewardLib->claimCubeRewardedDuringMatch($this->userId, $this->userRewardId, $this->claimReward, $this->androidVerId, $this->iosVerId, array('cube_upgrade_id' => $this->cubeUpgradeId)); 
         }else {
-          $result = $rewardLib->claimCubeRewardedDuringMatch($this->userId, $this->userRewardId, $this->claimReward);
+          $result = $rewardLib->claimCubeRewardedDuringMatch($this->userId, $this->userRewardId, $this->claimReward, $this->androidVerId, $this->iosVerId);
         } 
         
         $cubeOpenedAchievement = $achievementLib->checkCubeOpenedAchivement($this->userId);

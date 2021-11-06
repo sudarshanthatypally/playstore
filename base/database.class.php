@@ -1,6 +1,6 @@
 <?php
 /**
-  * Author : Sudarshan Thatypally
+  * Author : Abhijith Shetty
   * Date   : 15-10-2010
   * Updated: 07-04-2017 (Added PDO support with prepared statement)
   * Description : Handles database connection and query

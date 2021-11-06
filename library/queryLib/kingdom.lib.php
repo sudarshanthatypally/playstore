@@ -60,6 +60,7 @@ class kingdom{
       $sql = "SELECT *
             FROM kingdom_messages
             WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId";
+            //battle_state!=4 AND 
     }
     //UNION ALL (SELECT * FROM kingdom_messages WHERE is_update=1 ORDER BY updated_at DESC LIMIT 1)
     $result = database::doSelect($sql, array('kingdomId' => $kingdomId));
@@ -171,6 +172,24 @@ class kingdom{
             WHERE msg_type =".$msgType." AND battle_state=".$battleState." AND sent_by = :userId";
 
     $result = database::doDelete($sql, array('userId'=>$userId));
+    return $result;  
+  }
+  public function deleteKingdomRequestedMsgListMsgTypeByRoom($userId, $msgType, $roomId, $battleState, $options=array())
+  { 
+  
+    $sql = "DELETE FROM kingdom_messages
+            WHERE msg_type =".$msgType." AND battle_state=".$battleState." AND (room_id=:roomId OR sent_by = :userId)";
+
+    $result = database::doDelete($sql, array('userId'=>$userId, 'roomId'=>$roomId));
+    return $result;  
+  }
+  public function deleteKingdomRequestedMsgListMsgTypeByOpp($userId, $msgType, $oppId, $battleState, $options=array())
+  { 
+  
+    $sql = "DELETE FROM kingdom_messages
+            WHERE msg_type =".$msgType." AND battle_state=".$battleState." AND (received_by=:oppId OR sent_by = :userId)";
+
+    $result = database::doDelete($sql, array('userId'=>$userId, 'oppId'=>$oppId));
     return $result;  
   }
   public function deleteKingdomRequestedMsgType($userId,  $msgType, $options=array())
@@ -289,12 +308,20 @@ class kingdom{
     $result = database::doSelectOne($sql, array('userId' => $userId));
     return $result;
   }
-  public function getKingdomBattleByStateMsgType($userId,$msgType, $battleState, $options=array()){
+  public function getKingdomBattleByStateMsgType($userId, $msgType, $battleState, $options=array()){
     $sql = "SELECT *
             FROM kingdom_messages  
             WHERE battle_state=:battleState AND msg_type=:msgType AND sent_by=:userId";
  
     $result = database::doSelectOne($sql, array('userId' => $userId, 'battleState'=>$battleState, 'msgType'=>$msgType));
+    return $result;
+  }
+  public function getKingdomBattleByStateMsgTypeByOppId($userId, $receivedBy, $msgType, $battleState, $options=array()){
+    $sql = "SELECT *
+            FROM kingdom_messages  
+            WHERE battle_state=:battleState AND msg_type=:msgType AND (sent_by=:userId OR received_by=:receivedBy)";
+ 
+    $result = database::doSelectOne($sql, array('userId' => $userId, 'battleState'=>$battleState, 'msgType'=>$msgType, 'receivedBy'=>$receivedBy));
     return $result;
   }
   public function checkUserAvailable($userId, $options=array()){
@@ -398,7 +425,7 @@ class kingdom{
   public function getCheckMsgAvailableCount($kingdomId, $options=array()){
     $sql = "SELECT COUNT(*) AS cnt
             FROM kingdom_messages
-            WHERE kingdom_id =:kingdomId";
+            WHERE kingdom_id =:kingdomId AND battle_state!=5 AND battle_state!=4";
 
     $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
     return $result['cnt'];
@@ -406,7 +433,7 @@ class kingdom{
   public function getKingdomUnseenMsgCount($kingdomId,$last_id, $userId, $options=array()){
     $sql = "SELECT COUNT(*) AS cnt
             FROM kingdom_messages
-            WHERE kingdom_id =:kingdomId AND km_id >:last_id AND sent_by!=:userId";
+            WHERE kingdom_id =:kingdomId AND km_id >:last_id AND sent_by!=:userId AND battle_state!=5 AND battle_state!=4";
 
     $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId, 'last_id'=>$last_id, 'userId'=>$userId));
     return $result['cnt'];

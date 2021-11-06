@@ -40,10 +40,11 @@ class userLoginAction extends baseAction{
   {
     date_default_timezone_set('Asia/Kolkata');
     $userLib = autoload::loadLibrary('queryLib', 'user');
+    $cardLib = autoload::loadLibrary('queryLib', 'card');
+    $deckLib = autoload::loadLibrary('queryLib', 'deck');
     $result = array();
 
     $accessToken = md5(md5(rand(11111, 555555)).md5(time()));
-
     if($this->deviceToken == "")
     {
       $this->setResponse('DEVICE_TOKEN_MANDATORY');
@@ -76,7 +77,7 @@ class userLoginAction extends baseAction{
         $userId = $deviceUser['user_id'];
       }
     }
-
+ 
     if($userId > 0)
     {
       $userDetail = $userLib->getUserDetail($userId);
@@ -88,6 +89,43 @@ class userLoginAction extends baseAction{
 
       $userDetail = $userLib->getUserDetail($userId);
 
+      //------------------------------------- deck -----------------------------
+     /* $userDeckLst = $deckLib->getUserDeckDetail($userId);
+      if(empty($userDeckLst)){
+        $resultDeck = array();
+        $DeskList = $cardLib->getUserCardForActiveDeck($userId, DECK_ACTIVE); 
+        $deckFLst=array();
+        $resultDeck['current_deck_number']=0;
+        for($i=0;$i<=3;$i++){
+          $deckLst=array();
+          $deckLst['deck_id']=$i;
+          $j=0;
+          if($j<=7){
+            $oppdeckList=array();
+            foreach ($DeskList as $dcard) 
+            {
+              $cardPropertyInfo2 = $temp2 = array();
+              $temp2['master_card_id'] = $dcard['master_card_id'];
+              $oppdeckList[] = $temp2;
+              $j++;
+            }
+          }
+          $deckLst['cards']=$oppdeckList;
+          $deckFLst[]=$deckLst;
+        }
+        
+        $resultDeck['deck_details']= $deckFLst;
+        
+        $deckLib->insertUserDeck(array(
+          'user_id' => $userId,
+          'deck_data' => json_encode($resultDeck),
+          'created_at' => date('Y-m-d H:i:s'),
+          'status' => CONTENT_ACTIVE
+        ));
+        
+      }*/
+      
+      //------------------------------------- deck -----------------------------
       $this->setResponse('SUCCESS');
       return array('user_id' => $userId, "access_token" => $userDetail['access_token']);
     }

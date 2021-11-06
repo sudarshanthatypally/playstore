@@ -4,7 +4,7 @@ $setting["admin_password"] = "password@epiko";
 $setting["db_server"] = "epiko-db.cgkf0qydg6ah.eu-west-2.rds.amazonaws.com";
 $setting["db_username"] = "db_admin";
 $setting["db_password"] = "TtKQRrorDKAp5cK0eczG";
-$setting["db_name"] = "epiko-playstore";    
+$setting["db_name"] = "playstorev1";    
 $setting["memcache_server"] = "";
 $setting["memcache_port"] = "";
 $setting['mongo_server'] = "";
@@ -25,7 +25,7 @@ $setting["enable_test_console"] = true;  //true, false
 $setting["session_name"] = "aadya-session";
 $setting["timezone"] = "";
 $setting["project_title"] = "Epiko Royal";
-$setting["server_name"] = "https://epikoregalapi.com/EPIKO/playstore/rest.php";
+$setting["server_name"] = "http://35.176.252.22/EPIKO/playstorev1/rest.php";
 
 $setting['from_address'] = "in_ops@wharfstreetstudios.com";
 $setting['reply_to_address'] = "in_ops@wharfstreetstudios.com";
@@ -34,15 +34,15 @@ $setting['smtp_port'] = "465";
 $setting['smtp_username'] = "AKIAQ";
 $setting['smtp_password'] = "AqQK";
 
-$setting['ios_push_certificate_dev'] = "/var/www/html/EPIKO/playstore/config/EpicRoyaleDevck.pem";//development
+$setting['ios_push_certificate_dev'] = "/var/www/html/EPIKO/playstorev1/config/EpicRoyaleDevck.pem";//development
 $setting['ios_push_url_dev'] = "gateway.sandbox.push.apple.com";//Development
 $setting['ios_push_passphrase_dev'] = "EpicRoyalepush123";//Development
 
-$setting['ios_push_certificate_adhoc'] = "/var/www/html/EPIKO/playstore/config/EpicRoyaleDistick.pem";//adhoc
+$setting['ios_push_certificate_adhoc'] = "/var/www/html/EPIKO/playstorev1/config/EpicRoyaleDistick.pem";//adhoc
 $setting['ios_push_url_adhoc'] = "gateway.push.apple.com";//adhoc
 $setting['ios_push_passphrase_adhoc'] = "EpicRoyalepush321";//adhoc
 
 $setting["push_notification_legacy_key"] = "AIzaSyDs1EdgmCI2ZcB9V36qmilrqmRTPg-YIG0";
-$setting['policy_path'] = "https://epikoregalapi.com/EPIKO/playstore/static/assets";
+$setting['policy_path'] = "http://35.176.252.22/EPIKO/playstorev1/static/assets";
 
 ?>

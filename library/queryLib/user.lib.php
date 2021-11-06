@@ -90,14 +90,33 @@ class user{
     $result = database::doSelect($sql, array('userId'=>$userId));
     return $result;
   }
-  public function getFriendlyBattleHistoryList($userId, $options=array())
+  public function getFriendlyBattleHistoryList($userId, $roomId, $options=array())
   {
     $sql = "SELECT *
             FROM friendly_battle_history
-            WHERE user_id=:userId
-            ORDER BY created_at DESC";
+            WHERE user_id=:userId AND room_id=:roomId
+            ORDER BY created_at DESC
+            LIMIT 1";
 
-    $result = database::doSelect($sql, array('userId'=>$userId));
+    $result = database::doSelect($sql, array('userId'=>$userId, 'roomId'=>$roomId));
+    return $result;
+  }
+  public function getCheckRoomIdInFriendlyBattleHistoryList($roomId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM friendly_battle_history
+            WHERE room_id=:roomId";
+
+    $result = database::doSelectOne($sql, array('roomId'=>$roomId));
+    return $result;
+  }
+  public function getCheckRoomIdInmsgLst($roomId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM kingdom_messages 
+            WHERE room_id=:roomId AND battle_state=3";  
+
+    $result = database::doSelectOne($sql, array('roomId'=>$roomId));
     return $result;
   }
   public function updateUser($userId, $options=array())
@@ -189,8 +208,8 @@ class user{
                                         'stadium_tower_health' => $defaultTowerDetail['stadium_tower_health'],
                                         'is_copper_cube_notification_sent' => CONTENT_ACTIVE,
                                         'gold' => DEFAULT_GOLD,
-                                        'crystal' => DEFAULT_CRYSTAL));
-
+                                        'crystal' => 0));
+//DEFAULT_CRYSTAL
     $defaultCardList = $cardLib->getDefaultMasterCardList();
     $lmt = 0;
     foreach($defaultCardList as $defaultCard)
@@ -535,4 +554,71 @@ function secure_random_string($strength = 9) {
  
     return $random_string;
 }*/
+  public function getKingdomLoginAccess($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM kingdom_last_access
+            WHERE user_id =:userId";
+
+    $result = database::doSelectOne($sql, array('userId' => $userId));
+    return $result;
+  }
+  public function insertKingdomLoginAccess($userId, $options=array())
+  {
+    $sql = "INSERT INTO kingdom_last_access ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) ";
+    $sql .= "SELECT * FROM (SELECT :".implode(", :", array_keys($options))." ) AS tmp
+    WHERE NOT EXISTS (
+        SELECT user_id FROM kingdom_last_access WHERE user_id = ".$userId."
+    ) LIMIT 1";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+  public function updateKingdomLoginAccess($userId, $options=array())
+  {
+    $sql = "UPDATE kingdom_last_access SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_id =:userId";
+    $options['userId'] = $userId;
+
+    $result = database::doUpdate($sql, $options);
+
+    return $result;
+  }
+  public function deleteKingdomLoginAccess($options=array())
+  {
+    $sql = "DELETE FROM kingdom_messages km
+            WHERE EXISTS (SELECT  * 
+            FROM kingdom_last_access kla
+            WHERE kla.last_access < (UNIX_TIMESTAMP() - 5) AND km.battle_state=1 AND kla.user_id = km.sent_by)";
+
+	  $result = database::doDelete($sql, $options);
+    return $result;
+  }
+  public function updateToCancelKingdomChatWithLoginAccess($options=array())
+  {
+    $sql = "UPDATE kingdom_messages km
+            SET battle_state=4
+            WHERE EXISTS (SELECT  * 
+            FROM kingdom_last_access kla
+            WHERE kla.last_access < (UNIX_TIMESTAMP() - 5) AND km.battle_state=1 AND km.msg_type=3 AND kla.user_id = km.sent_by)";
+
+	  $result = database::doDelete($sql, $options);
+    return $result;
+  }
+  public function getListToCancelKingdomChatWithLoginAccess($options=array())
+  {
+    $sql = "SELECT *
+            FROM kingdom_messages km
+            WHERE EXISTS (SELECT  * 
+            FROM kingdom_last_access kla
+            WHERE kla.last_access < (UNIX_TIMESTAMP() - 5) AND km.battle_state=1 AND km.msg_type=3 AND kla.user_id = km.sent_by)";
+
+	  $result = database::doSelect($sql, $options);
+    return $result;
+  }
 }

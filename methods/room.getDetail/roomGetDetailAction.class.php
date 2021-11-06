@@ -38,11 +38,12 @@ class roomGetDetailAction extends baseAction{
   {
     $roomLib = autoload::loadLibrary('queryLib', 'room');
     $aiLib = autoload::loadLibrary('queryLib', 'ai');
-
+    date_default_timezone_set('Asia/Kolkata');
     $result = $users = array();
     $remainingTime = 0;
     $roomId = -1;
     $waitingRoomPlayer = $roomLib->getWaitingRoomDetail($this->waitingRoomId);
+
 
     //Calculating remaining time and setting the room status
     $remainingTime = ((($waitingRoomPlayer['entry_time'] + ROOM_SEARCH_TIMEOUT_TIME) - time()) < 0) ? 0: ($waitingRoomPlayer['entry_time'] + ROOM_SEARCH_TIMEOUT_TIME) - time();
@@ -53,38 +54,53 @@ class roomGetDetailAction extends baseAction{
       $remainingTime = 0;
       $roomLib->updateWaitingRoom($waitingRoomPlayer['waiting_room_id'], array('status' => CONTENT_CLOSED));
     }
-
-    if($waitingRoomPlayer['room_id'] > 0)
-    {
-      $roomId = $waitingRoomPlayer['room_id'];
-      $remainingTime = 0;
-
-      //Get the roomPlayers .
-      $roomPlayers = $roomLib->getPlayersForRoomId($waitingRoomPlayer['room_id']);
-      if($this->match_type==2){
-        $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
-      }elseif($this->match_type==3){
-        $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
-      }else{
-        $users = $roomLib->formatMatchingPlayer($roomPlayers);
+    $a=0;
+    try{
+      if($waitingRoomPlayer['room_id'] > 0)
+      {
+        $a=1;
+        $roomId = $waitingRoomPlayer['room_id'];
+        $remainingTime = 0;
+        print_log($roomId);
+        //Get the roomPlayers .
+        $roomPlayers = $roomLib->getPlayersForRoomId($waitingRoomPlayer['room_id']);
+        if($this->match_type==2){
+          $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
+        }elseif($this->match_type==3){
+          $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
+        }else{
+          $users = $roomLib->formatMatchingPlayer($roomPlayers);
+        }
+      }elseif($remainingTime == 0 &&$this->type != CANCEL_SEARCH && !$waitingRoomPlayer['room_id'] > 0 && $this->match_type!=3){
+        $a=2;
+        //$roomLib->updateWaitingRoom($waitingRoomPlayer['waiting_room_id'], array('status' => CONTENT_CLOSED));
+        $roomId = $aiLib->getAiPlayerForUser($waitingRoomPlayer['user_id'], $waitingRoomPlayer['waiting_room_id']);
+        $roomPlayers = $roomLib->getPlayersForRoomId($roomId);
+        if($this->match_type==2){
+          $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
+        }elseif($this->match_type==3){
+          $roomId = $roomLib->getOppPlayerForUser($waitingRoomPlayer['user_id'], $waitingRoomPlayer['waiting_room_id']);
+          $roomPlayers = $roomLib->getPlayersForRoomId($roomId);
+          //$roomPlayersT3 = $roomLib->getPlayersForRoomId($waitingRoomPlayer['room_id']);
+          $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
+         /* $msg="Player not found";
+          $this->setResponse('SUCCESS');
+          return array('msg' => $msg);*/
+        }else{
+          $users = $roomLib->formatMatchingPlayer($roomPlayers);
+        }
       }
-      
-
+      print_log("=============================== user Id ===================================");
+      print_log($a);
+      print_log($this->match_type);
+      print_log("===========================================================================");
+    }catch(Exception $e) {
+      print_log("=============================== exception ===================================");
+      print_log($e->getMessage());
+      print_log("========================================================================");
     }
-
-    //Player Still finding the matching opponent
-    if($remainingTime == 0 && $this->type != CANCEL_SEARCH && !$waitingRoomPlayer['room_id'] > 0){
-      //$roomLib->updateWaitingRoom($waitingRoomPlayer['waiting_room_id'], array('status' => CONTENT_CLOSED));
-      $roomId = $aiLib->getAiPlayerForUser($waitingRoomPlayer['user_id'], $waitingRoomPlayer['waiting_room_id']);
-      $roomPlayers = $roomLib->getPlayersForRoomId($roomId);
-      if($this->match_type==2){
-        $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
-      }elseif($this->match_type==3){
-        $users = $roomLib->formatMatchingPlayerwithType($roomPlayers);
-      }else{
-        $users = $roomLib->formatMatchingPlayer($roomPlayers);
-      }
-    }
+    
+    
 
     $this->setResponse('SUCCESS');
     return array('room_id' => $roomId, 'remaining_time' => $remainingTime, 'users' => $users );

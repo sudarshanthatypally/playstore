@@ -77,6 +77,7 @@ class room{
 */
 public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $masterStadiumId, $options=array())
   {
+    date_default_timezone_set('Asia/Kolkata');
     $sql =  "SELECT waiting_room.waiting_room_id, user.relics, user.level_id, waiting_room.status 
             FROM waiting_room
             INNER JOIN user ON user.user_id = waiting_room.user_id
@@ -153,6 +154,44 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
 
     $result = database::doSelect($sql, array('roomId'=>$roomId));
     return $result;
+  }
+  public function getDetailForFriendlyBattleWithUserId($userId, $options=array())
+  {
+    $sql = "SELECT * 
+            FROM friendly_invite
+            WHERE user_id=:userId
+            ORDER BY created_at DESC
+            LIMIT 1";
+
+    $result = database::doSelectOne($sql, array('userId'=>$userId, 'roomId'=>$roomId));
+    return $result['accepted_user_id'];
+  }
+  public function getOppPlayerForUser($userId, $waitingRoomId){
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $roomLib = autoload::loadLibrary('queryLib', 'room');
+    //get user detail
+    $userDetail = $userLib->getUserDetail($userId);
+    //check if any free AI is present with matching conditions
+    $oppUserId = $this->getDetailForFriendlyBattleWithUserId($userId);
+    
+
+    $roomId = $roomLib->insertRoom(array(
+      'user_id' => $userId,
+      'created_at' => date('Y-m-d H:i:s'),
+      'status' => CONTENT_ACTIVE));
+
+    //Assign the room to battling player.
+    $roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
+
+    $roomLib->insertWaitingRoomPlayer(array(
+      'user_id' => $oppUserId,
+      'room_id' => $roomId,
+      'win_status' => BATTLE_DEFAULT_STATUS,
+      'entry_time' => time(),
+      'created_at' => date('Y-m-d H:i:s'),
+      'status' => CONTENT_ACTIVE));
+
+    return $roomId;
   }
 
   public function getPercentageofCubewithMasterId($masterId){
@@ -405,7 +444,7 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
     /*foreach($batHist as $bhLst) {
       $usrDckLst=$bhLst['userDeckLst']; 
       $oppDckLst =$bhLst['oppDeckLst']; 
-    }*/
+    }*/ 
     
     $a = array($userId=>$usrDckLst,
                $oppId=>$oppDckLst);
@@ -466,7 +505,16 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
     $result = database::doSelectOne($sql, array('closed' => CONTENT_CLOSED,  'userId' => $userId));
     return $result;
   }
+  public function getWaitingPlayerBasedOnUserId($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM waiting_room
+            WHERE user_id =:userId
+            ORDER BY waiting_room_id DESC";
 
+    $result = database::doSelectOne($sql, array( 'userId' => $userId));
+    return $result;
+  }
   public function updateWaitingRoomStatus($roomId, $userId, $options=array())
   {
     $sql = "UPDATE waiting_room SET ";
@@ -552,6 +600,28 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
             WHERE user_id = :userId AND win_status=:winStatus";
 
     $result = database::doSelectOne($sql, array('userId'=>$userId, 'winStatus' => $winStatus));
+    return $result;
+  }
+  public function deleteAllWaitingRoomUser($userId, $waitingRoomId, $options=array())
+  {
+    $sql = "DELETE FROM waiting_room
+            WHERE user_id = :userId AND waiting_room_id =:waitingRoomId";
+
+	  $result = database::doDelete($sql, array('userId'=>$userId, 'waitingRoomId'=>$waitingRoomId));
+    return $result;
+  }
+  public function deleteAllWaitingRoomUserId($userId, $oppUserId, $roomId, $options=array())
+  {
+    $sql = "DELETE u1 FROM waiting_room u1 
+		INNER JOIN waiting_room u2 ON u1.waiting_room_id < u2.waiting_room_id AND u1.user_id = u2.user_id";
+    
+
+    /*DELETE FROM waiting_room
+            WHERE user_id = :userId OR user_id=:oppUserId AND room_id !=:roomId
+            ORDER BY waiting_room_id DESC
+            LIMIT 2";*/
+
+	  $result = database::doDelete($sql, array('userId'=>$userId, 'oppUserId'=>$oppUserId, 'roomId'=>$roomId));
     return $result;
   }
 }

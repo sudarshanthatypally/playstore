@@ -38,9 +38,20 @@ class cardGetDailyCardsAction extends baseAction{
     $userDetail = $userLib->getUserDetail($this->userId);
     $dailyCardDetail = $dailyCard->getUserDailyCardDetail($this->userId);
     //$masterCardList = formatArr($cardLib->getMasterCardListForStadium($userDetail['master_stadium_id']), 'master_card_id');
-    $getCardVal= $cardLib->getMasterCardListForStadiumWithUserId($this->userId);
+    //$getCardVal= $cardLib->getMasterCardListForStadiumWithUserId($this->userId); //old one
+    $getCardVal= $cardLib->getMasterCardListForStadiumWithUserIdWithVersion($this->userId, $this->androidVerId, $this->iosVerId); 
     //print_log($getCardVal);
-    $masterCardList = formatArr($getCardVal,'master_card_id');
+    /*if(!empty($getCardVal['android_version_id']) && !empty($this->androidVerId)){
+      if(version_compare($getCardVal['android_version_id'],$this->androidVerId, '<=')){
+        $masterCardList = formatArr($getCardVal,'master_card_id');
+      }
+    }
+    if(!empty($getCardVal['ios_version_id']) && !empty($this->iosVerId)){
+      if(version_compare($getCardVal['ios_version_id'],$this->iosVerId, '<=')){
+        $masterCardList = formatArr($getCardVal,'master_card_id');
+      }
+    }*/
+    $masterCardList = formatArr($getCardVal,'master_card_id'); 
     //print_log($this->userId);
     //print_log($userDetail['master_stadium_id']);
     //print_log($masterCardList);
@@ -59,21 +70,37 @@ class cardGetDailyCardsAction extends baseAction{
         'status' => CONTENT_ACTIVE
       ));
       $remainingTime = (strtotime(date('Y-m-d H:i:s')) + 28800) - time();
-} 
-    
-    
+    } 
+      
     foreach($randomcardList as $key=>$value) {
       $list = $masterCardList[$value];
       $userCardDetail = $cardLib->getUserCardDetailForMastercardId($this->userId, $list['master_card_id']);
-
+      if(empty($userCardDetail)){
+        $userCardDetail = $cardLib->getUserCardDetailForMastercardIdIfNull($list['master_card_id']);
+      }
       $item['master_card_id'] = $list['master_card_id'];
       $cardId[] = $list['master_card_id'];
       $item['title'] = $list['title'];
       $item['card_type'] = $list['card_type'];
       $item['card_type_message'] = ($list['card_type'] == CARD_TYPE_CHARACTER) ? 'Character' : 'Power';
       $item['card_rarity_type'] = $list['card_rarity_type'];
+      if(!empty($list['android_version_id']) && !empty($this->androidVerId)){
+        if(version_compare($list['android_version_id'],$this->androidVerId, '<=')){
+          $item['is_available'] = 1; 
+        }else{
+          $item['is_available'] = 0;  
+        }
+      }elseif(!empty($list['ios_version_id']) && !empty($this->iosVerId)){
+        if(version_compare($list['ios_version_id'],$this->iosVerId, '<=')){
+          $item['is_available'] = 1; 
+        }else{
+          $item['is_available'] = 0; 
+        }
+      }else{
+        $item['is_available'] = $list['is_available'];
+      }
       $item['rarity_type_message'] = ($list['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($list['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($list['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
-      $item['total_card'] = (!empty($userCardDetail)) ? $userCardDetail['user_card_count'] : DEFAULT_CARD_COUNT;
+      $item['total_card'] = (!empty($userCardDetail)) && (!empty($userCardDetail['user_card_count']))  ? $userCardDetail['user_card_count'] : DEFAULT_CARD_COUNT;
       $item['card_level'] = (!empty($userCardDetail)) ? $userCardDetail['level_id'] : DEFAULT_CARD_LEVEL_ID;
       $levelUpgradeCardDetail = $cardLib->getMasterCardLevelUpgradeForCardCount($item['card_level']+1, $list['card_rarity_type']);
       $item['next_level_card_count'] = $levelUpgradeCardDetail['card_count'];

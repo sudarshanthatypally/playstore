@@ -80,55 +80,110 @@
   }
 
   function print_log($log_msg)
-{
-    $log_filename = $_SERVER['DOCUMENT_ROOT']."/log";
+  {
+      $log_filename = $_SERVER['DOCUMENT_ROOT']."/EPIKO/log";
+      $now   = time();
 
-    $path = $log_filename.'/';
-    if ($handle = opendir($path)) {
-        while (false !== ($file = readdir($handle))) { 
-            $filelastmodified = filemtime($path . $file);
-            //24 hours in a day * 3600 seconds per hour
-            if((time() - $filelastmodified) > 10*24*3600) // 10days
-            {
-              unlink($path . $file);
-            }
-        }
-        closedir($handle); 
-    }
-    /*$stream=fopen('s3://epiko-playstore-logs','a');
-    fwrite($stream, 'Hello');
-    fclose($stream);*/
-    //$log_filename = "/log";
-    if (!file_exists($log_filename)) 
-    {
-        // create directory/folder uploads.
-        mkdir($log_filename, 0777, true);
-    }
-    $log_file_data = $log_filename.'/log_' . date('d-M-Y') . '.log';
-    // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
-    file_put_contents($log_file_data, json_encode($log_msg, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
-} 
+      $path = $log_filename.'/';
+      if ($handle = opendir($path)) {
+          while (false !== ($file = readdir($handle))) { 
+              $filelastmodified = filemtime($path . $file);
+              //24 hours in a day * 3600 seconds per hour
+              if(is_file($file)){
+                if((time() - $filelastmodified) >= 10*24*3600) // 10days
+                {
+                  unlink($path . $file);
+                }
+              }
+          }
+          closedir($handle); 
+      }
+      /*$stream=fopen('s3://epiko-playstore-logs','a');
+      fwrite($stream, 'Hello');
+      fclose($stream);*/
+      //$log_filename = "/log";
+      if (!file_exists($log_filename)) 
+      {
+          // create directory/folder uploads.
+          mkdir($log_filename, 0777, true);
+      }
+      $log_file_data = $log_filename.'/log_' . date('d-M-Y') . '.log';
+      // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+      file_put_contents($log_file_data, json_encode($log_msg, JSON_PRETTY_PRINT) . "\n", FILE_APPEND);
+  } 
+  function logServer($apiName,$logMessage){
+    $ch = curl_init();
 
-function logServer($apiName, $logMessage, $level="i"){
-  $ch = curl_init(); 
-  $fields = array('applicationKey' => '12345',
-                  'methodName' => 'logs.save',
-                  'api_name' => $apiName,
-                  'error_level' => $level, //e=>Error, i=> Info, d=>Debug
-                  'log_message' => json_encode($logMessage));
-  $postvars = '';
-  foreach($fields as $key=>$value) {
-    $postvars .= $key . "=" . $value . "&";
+    curl_setopt($ch, CURLOPT_URL,"http://35.176.252.22/EPIKO/staging/rest.php");
+    curl_setopt($ch, CURLOPT_POST, 0);
+    /*curl_setopt($ch, CURLOPT_POSTFIELDS,
+                "postvar1=value1&postvar2=value2&postvar3=value3");*/
+    curl_setopt($ch, CURLOPT_POSTFIELDS, 
+                http_build_query(array('applicationKey' => '12345',
+                                        'methodName' => $apiName,
+                                        'log_message' => $logMessage)));
+    // In real life you should use something like:
+    // curl_setopt($ch, CURLOPT_POSTFIELDS, 
+    //          http_build_query(array('postvar1' => 'value1')));
+
+    // Receive server response ...
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $server_output = curl_exec($ch);
+
+    curl_close ($ch);
+      return $server_output;
+    // Further processing ...
+    //if ($server_output == "OK") { ... } else { ... }
   }
-  $url = "http://35.176.252.22/EPIKO/staging/rest.php";
-  curl_setopt($ch,CURLOPT_URL,$url);
-  curl_setopt($ch,CURLOPT_POST, 0);                //0 for a get request
-  curl_setopt($ch,CURLOPT_POSTFIELDS,$postvars);
-  curl_setopt($ch,CURLOPT_RETURNTRANSFER, true);
-  curl_setopt($ch,CURLOPT_CONNECTTIMEOUT ,3);
-  curl_setopt($ch,CURLOPT_TIMEOUT, 20);
-  $response = curl_exec($ch);
-  curl_close ($ch);
-  return $response;
-}
+  function serverLog($apiName, $text, $level='i') {
+    date_default_timezone_set("Asia/Kolkata");
+    switch (strtolower($level)) {
+        case 'e':
+        case 'error':
+            $level='ERROR';
+            break;
+        case 'i':
+        case 'info':
+            $level='INFO';
+            break;
+        case 'd':
+        case 'debug':
+            $level='DEBUG';
+            break;
+        default:
+            $level='INFO';
+    }
+
+    $log_filename = $_SERVER['DOCUMENT_ROOT']."/EPIKO/playstore_log";
+
+      $path = $log_filename.'/';
+      if ($handle = opendir($path)) {
+          while (false !== ($file = readdir($handle))) { 
+              $filelastmodified = filemtime($path . $file);
+              //24 hours in a day * 3600 seconds per hour
+              if(!empty($file)){
+                if(!empty($filelastmodified)){
+                  if((time() - $filelastmodified) > 10*24*3600) // 10days
+                  {
+                    unlink($path . $file);
+                  }
+                }
+                
+              }
+              
+          }
+          closedir($handle); 
+      }
+      if (!file_exists($log_filename)) 
+      {
+          // create directory/folder uploads.
+          mkdir($log_filename, 0777, true);
+      }
+      $log_file_data = $log_filename.'/log_' . date('d-M-Y') . '.log';
+      // if you don't add `FILE_APPEND`, the file will be erased each time you add a log
+      $msgData = date("[Y-m-d H:i:s]")."\t[".$level."]\t[".$apiName."]\t".$text;
+      file_put_contents($log_file_data, $msgData . "\n", FILE_APPEND);
+  } 
+
 ?>

@@ -1,13 +1,13 @@
 <?php
-class cardGetDailyCardsInitialize extends baseInitialize{
+class questListInitialize extends baseInitialize{
 
   public $requestMethod = array("GET", "POST");
   public $isSecured = true;
-	
+
   public function getParameter()
   {
     $parameter = array();
-    $parameter["androidVerId"] = array(
+    /*$parameter["androidVerId"] = array(
       "name" => "android_version_id",
       "type" => "text",
       "required" => false,
@@ -20,7 +20,7 @@ class cardGetDailyCardsInitialize extends baseInitialize{
       "required" => false,
       "default" => "",
       "description" => "ios_version_id"
-    );
+    );*/
     return $parameter;
   }
 }

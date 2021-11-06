@@ -59,8 +59,7 @@ class inAppPurchaseUpdateAction extends baseAction{
                               'created_at' =>  date('Y-m-d H:i:s'),
                               'status' => CONTENT_ACTIVE));
     
-    logServer("inAppPurchaseUpdate",$this->crystal);
-    logServer("inAppPurchaseUpdate",$this->data);
+    print_log($this->crystal);
     print_log($this->data);
     $result['total_crystal'] = $user['crystal'];
     $result['crystal_bonus'] = $this->crystal;

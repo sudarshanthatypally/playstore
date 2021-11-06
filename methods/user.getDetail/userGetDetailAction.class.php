@@ -39,6 +39,7 @@ class userGetDetailAction extends baseAction{
     $deckLib = autoload::loadLibrary('queryLib', 'deck');
     $notificationLib = autoload::loadLibrary('queryLib', 'notification');
     $kingdomLib = autoload::loadLibrary('queryLib', 'kingdom');
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
     date_default_timezone_set('Asia/Kolkata');
     $result = $deckList = $temp = array();
     $notificationLib->deleteNotificationByDate();
@@ -48,7 +49,12 @@ class userGetDetailAction extends baseAction{
     //User detail with cards list which is in use deck.
     $userLib->checkForUserLevelUp($this->userId);
     $currDate= date('Y-m-d H:i:s');
-
+    $questLib->insertMasterQuestInventory(array(
+      'quest_id' => 1,
+      'time' => date('Y-m-d H:i:s'),
+      'user_id' => $this->userId,
+      'status' => CONTENT_ACTIVE,
+      'created_at' => date('Y-m-d H:i:s')));
     if($this->levelUp==1){
       $userLib->updateUser($this->userId, array('level_up' => 0));
     }
@@ -60,7 +66,7 @@ class userGetDetailAction extends baseAction{
 
 
     $userDetail = $userLib->getUserDetail($this->userId);
-    //logServer("user.getDetail",$userDetail);
+
     if($userDetail['max_stadium_id']=="" || $userDetail['max_stadium_id']==0){
       $userLib->updateUser($this->userId, array('max_stadium_id' => $userDetail['master_stadium_id']));
     }
@@ -71,6 +77,9 @@ class userGetDetailAction extends baseAction{
       $deckCards = formatArr($deckData['deck_details'], 'deck_id');
       $data = (array_column($deckCards[$deckData['current_deck_number']]['cards'], 'master_id'));
       $userCardList = $cardLib->getUserCardForCurrentDeck($this->userId, DECK_ACTIVE, implode(',',$data)); 
+      if(empty($userCardList) || count($userCardList)==0){
+        $userCardList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE);
+      }
     } else {
       $userCardList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
     }
@@ -201,20 +210,22 @@ class userGetDetailAction extends baseAction{
     $result['editname_count'] = $userDetail['editname_count'];
     $result['android_update'] = false;
     $result['ios_update'] = false;
-    $result['android_appversion'] = "1.0.8";
+    $result['android_appversion'] = "1.0.0";
     $result['ios_appversion'] = "1.0.0";
-    $result['updatedurl'] = "https://play.google.com/store/apps/details?id=com.wss.epikoregal";
-	$result['android_updatedurl']="https://play.google.com/store/apps/details?id=com.wss.epikoregal";
+    //$result['updatedurl'] = "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776 \n Android=Coming Soon";
+    $result['android_updatedurl']="Share Links \n  Android=Coming Soon";
     $result['ios_updatedurl']= "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776";
     $result['invite_baseurl']="https://epikoregal.com/";
     $result['invite_prefixurl']="friendlybattle.page.link";
-    //$result['invite_baseurl']="https://wharfstreetstudios.com/";
-    //$result['invite_prefixurl']="wssepiko.page.link";
     $result['maintainanceon'] = true;
     $result['level_up'] = $userDetail['level_up'];
     $result['stadium_level_up'] = $userDetail['stadium_level_up'];
     $result['max_stadium_id'] = $userDetail['max_stadium_id'];
     $result['kingQueen_status'] = $userDetail['kingQueen_status'];
+    $result['season_id'] = $userDetail['season_id'];
+    if($userDetail['season_id']==0){
+      $result['is_season_available']=0;
+    }
     //settype($result['android_appversion'], "float");
     //settype($result['IOS_appversion'], "float");
     //settype($result['updatedurl'], "url");

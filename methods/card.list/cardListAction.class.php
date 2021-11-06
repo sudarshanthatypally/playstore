@@ -69,7 +69,23 @@ class cardListAction extends baseAction{
       $temp['master_stadium_id'] = $card['master_stadium_id'];
       $temp['title'] = $card['title'];
       $temp['card_type'] = $card['card_type'];
-      $temp['is_available'] = $card['is_available'];
+
+      if(!empty($card['android_version_id']) && !empty($this->androidVerId)){
+        if(version_compare($card['android_version_id'],$this->androidVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }elseif(!empty($card['ios_version_id']) && !empty($this->iosVerId)){
+        if(version_compare($card['ios_version_id'],$this->iosVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }else{
+        $temp['is_available'] = $card['is_available'];
+      }
+      //$temp['is_available'] = $card['is_available'];
       $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
       //($card['card_type'] == CARD_TYPE_CHARACTER)?"Character":"Power"; 
       $temp['card_rarity_type'] = $card['card_rarity_type'];
@@ -100,7 +116,7 @@ class cardListAction extends baseAction{
       //$cardPropertyList = $cardLib->getCardPropertyForUseCardId($card['user_card_id']); 
       $cardPropertyList = $cardLib->getCardPropertyForMasterCardAndLevelIdAndCommonLevel($card['master_card_id'], $card['level_id'], $basic_lvl);
       //$cardPropertyList = $cardLib->getCardPropertyForUserIdAndLevelId($card['user_card_id'], $card['level_id']);
-      print_log($cardPropertyList);
+      //print_log($cardPropertyList);
       foreach($cardPropertyList as $cardProperty)
       {
         $tempProperty = array();
@@ -126,7 +142,8 @@ class cardListAction extends baseAction{
       $result[] = $temp;
     }
     
-    $lockedCardList = $cardLib->getLockedMasterCardList($this->userId);
+    //$lockedCardList = $cardLib->getLockedMasterCardList($this->userId);
+    $lockedCardList = $cardLib->getLockedMasterCardListWithVersion($this->userId, $this->androidVerId, $this->iosVerId);
     foreach ($lockedCardList as $card)
     {
       $temp = array();
@@ -134,7 +151,22 @@ class cardListAction extends baseAction{
       $temp['master_stadium_id'] = $card['master_stadium_id'];
       $temp['title'] = $card['title'];
       $temp['card_type'] = $card['card_type'];
-      $temp['is_available'] = $card['is_available'];
+      if(!empty($card['android_version_id']) && !empty($this->androidVerId)){
+        if(version_compare($card['android_version_id'],$this->androidVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }elseif(!empty($card['ios_version_id']) && !empty($this->iosVerId)){
+        if(version_compare($card['ios_version_id'],$this->iosVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }else{
+        $temp['is_available'] = $card['is_available'];
+      }
+      //$temp['is_available'] = $card['is_available'];
       $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
       $temp['card_rarity_type'] = $card['card_rarity_type'];
       $temp['rarity_type_message'] = ($card['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($card['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($card['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
@@ -143,7 +175,8 @@ class cardListAction extends baseAction{
       $lockedCards[] = $temp;
     }
 
-    $futureCardList = $cardLib->getFutureMasterCardList($this->userId);
+    //$futureCardList = $cardLib->getFutureMasterCardList($this->userId);
+    $futureCardList = $cardLib->getFutureMasterCardListWithVersion($this->userId, $this->androidVerId, $this->iosVerId);
     foreach ($futureCardList as $card)
     {
       $temp = array();
@@ -151,7 +184,22 @@ class cardListAction extends baseAction{
       $temp['master_stadium_id'] = $card['master_stadium_id'];
       $temp['title'] = $card['title'];
       $temp['card_type'] = $card['card_type'];
-      $temp['is_available'] = $card['is_available'];
+      if(!empty($card['android_version_id']) && !empty($this->androidVerId)){
+        if(version_compare($card['android_version_id'],$this->androidVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }elseif(!empty($card['ios_version_id']) && !empty($this->iosVerId)){
+        if(version_compare($card['ios_version_id'],$this->iosVerId, '<=')){
+          $temp['is_available'] = 1; 
+        }else{
+          $temp['is_available'] = 0; 
+        }
+      }else{
+        $temp['is_available'] = $card['is_available'];
+      }
+      //$temp['is_available'] = $card['is_available'];
       $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
       $temp['card_rarity_type'] = $card['card_rarity_type'];
       $temp['rarity_type_message'] = ($card['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($card['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($card['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));

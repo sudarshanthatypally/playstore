@@ -13,7 +13,7 @@ class card{
 
   public function getMasterCardListWithStadium($options=array())
   {
-    $sql = "SELECT mc.master_card_id, mc.title,mc.card_max_level,mc.card_rarity_type,mc.is_available,mc.card_description,mc.bundlename,mc.android_bundlehash,mc.android_bundlecrc,mc.ios_bundlehash,mc.ios_bundlecrc, mc.card_type, mc.is_card_default,ms.title as stadium_title, ms.master_stadium_id
+    $sql = "SELECT mc.master_card_id, mc.title,mc.card_max_level,mc.card_rarity_type,mc.is_available,mc.card_description,mc.bundlename,mc.android_bundlehash,mc.android_version_id, mc.ios_version_id,mc.android_bundlecrc,mc.ios_bundlehash,mc.ios_bundlecrc, mc.card_type, mc.is_card_default,ms.title as stadium_title, ms.master_stadium_id
             FROM master_card mc
             LEFT JOIN master_stadium ms ON mc.master_stadium_id = ms.master_stadium_id
             ORDER BY mc.master_card_id";
@@ -261,6 +261,41 @@ public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rari
     $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType));
     return $result;
   }
+  public function getMasterCardListBasedOnStadiumAndRarityWithVersion($masterStadiumId, $rarityType, $probability, $excludeCardId=0, $limit, $andVer, $iosVer, $options=array())
+  { 
+    /*$sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND is_available=1 AND mc.master_stadium_id <= :masterStadiumId AND mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;*/
+    if(!empty($andVer)){
+      $sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND 
+                  mc.master_stadium_id <= :masterStadiumId AND 
+                  INET_ATON(mc.android_version_id)<=INET_ATON('".$andVer."') AND 
+                  mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND 
+                  mc.master_stadium_id <= :masterStadiumId AND 
+                  INET_ATON(mc.ios_version_id)<=INET_ATON('".$iosVer."') AND 
+                  mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+    }else{
+      $sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND is_available=1 AND mc.master_stadium_id <= :masterStadiumId AND mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+    }
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType));
+    return $result;
+  }
   public function getMasterLevelUpXpDetail($levelId, $options=array())
   {
     $sql = "SELECT *
@@ -285,10 +320,10 @@ public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rari
 
   public function getUserCardListForUserId($userId, $options=array())
   {
-    $sql = "SELECT user_card.*, master_card.title, master_card.master_stadium_id, master_card.is_available, master_card.card_rarity_type, master_card.card_type, master_card.card_description
+    $sql = "SELECT user_card.*, master_card.title, master_card.master_stadium_id, master_card.is_available, master_card.card_rarity_type, master_card.card_type, master_card.android_version_id, master_card.ios_version_id, master_card.card_description
             FROM user_card
             INNER JOIN master_card ON user_card.master_card_id = master_card.master_card_id
-            WHERE user_card.user_id = :userId AND master_card.is_available=1";
+            WHERE user_card.user_id = :userId";
 
     $result = database::doSelect($sql, array('userId' => $userId));
     return $result;
@@ -346,9 +381,23 @@ public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rari
             WHERE uc.user_id = :userId AND uc.master_card_id = :masterCardId";
 
     $result = database::doSelectOne($sql, array('userId' => $userId, 'masterCardId' => $masterCardId));
+    
     return $result;
   } 
 
+  public function getUserCardDetailForMastercardIdIfNull($masterCardId, $options=array()) 
+  {
+      $sql = "SELECT mclu.*,mc.*
+              FROM master_card mc
+              LEFT JOIN master_card_level_upgrade mclu ON mc.card_rarity_type=mclu.rarity_type
+              WHERE mc.master_card_id=:masterCardId
+              GROUP BY mc.master_card_id 
+              ORDER BY mc.master_card_id ASC";
+
+    $result = database::doSelectOne($sql, array('masterCardId' => $masterCardId));
+    return $result;
+    
+  }
   public function getCardPropertyLevelUpgradeDetail($masterCardId, $levelId, $options=array())
   {
     $sql = "SELECT *
@@ -568,7 +617,28 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
     $result = database::doSelect($sql, array('userId' => $userId));
     return $result; 
   }
- 
+  public function getMasterCardListForStadiumWithUserIdWithVersion($userId, $andVer, $iosVer, $options=array()){
+    /*$sql = "SELECT mc.*
+            FROM master_card mc
+            INNER JOIN user_card uc ON uc.master_card_id = mc.master_card_id
+            WHERE uc.user_id =:userId";*/
+    if(!empty($andVer)){
+      $sql = "SELECT mc.*
+              FROM master_card mc
+              WHERE INET_ATON(mc.android_version_id)<=INET_ATON('".$andVer."')";
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT mc.*
+              FROM master_card mc
+              WHERE INET_ATON(ios_version_id)<=INET_ATON('".$iosVer."')";
+    }else{
+      $sql = "SELECT mc.*
+            FROM master_card mc
+            WHERE mc.is_available=1";
+    }
+
+    $result = database::doSelect($sql, array('userId' => $userId));
+    return $result; 
+  }
   public function getMasterCardListForUnlocking($stadiumId, $options=array())
   {
     $sql = "SELECT *
@@ -578,7 +648,24 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
     $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
     return $result;
   }
-
+  public function getMasterCardListForUnlockingWithVersion($stadiumId, $andVer, $iosVer, $options=array())
+  {
+    if(!empty($andVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id =:stadiumId AND INET_ATON(android_version_id)<=INET_ATON('".$andVer."')";
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id =:stadiumId AND INET_ATON(ios_version_id)<=INET_ATON('".$iosVer."')";
+    }else{
+      $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id =:stadiumId AND is_available=1";
+    }
+    $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
+    return $result;
+  }
   public function getFutureMasterCardList($userId, $options=array())
   {
     $sql = "SELECT *
@@ -590,6 +677,32 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
     $result = database::doSelect($sql,array('userId' => $userId));
     return $result;
   } 
+  public function getFutureMasterCardListWithVersion($userId, $andVer, $iosVer, $options=array())
+  {
+    if(!empty($andVer)){
+      $sql = "SELECT *
+      FROM master_card
+      WHERE android_version_id IS NULL AND master_card_id NOT IN 
+        (SELECT master_card_id  
+        FROM user_card where user_id =:userId)";
+      
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT *
+      FROM master_card
+      WHERE ios_version_id IS NULL AND master_card_id NOT IN 
+        (SELECT master_card_id  
+        FROM user_card where user_id =:userId)";
+    }else{
+      $sql = "SELECT *
+              FROM master_card
+              WHERE is_available!=0 AND master_card_id NOT IN 
+                (SELECT master_card_id  
+                FROM user_card where user_id =:userId)";
+    }
+    $result = database::doSelect($sql,array('userId' => $userId));
+    return $result;
+  } 
+  
 
   public function getLockedMasterCardList($userId, $options=array())
   {
@@ -602,7 +715,34 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
     $result = database::doSelect($sql,array('userId' => $userId));
     return $result;
   }
+  public function getLockedMasterCardListWithVersion($userId,$andVer,$iosVer, $options=array())
+  {
+    if(!empty($andVer)){
+      $sql = "SELECT *
+              FROM master_card
+              WHERE INET_ATON(android_version_id)<=INET_ATON('".$andVer."') AND master_card_id NOT IN 
+                (SELECT master_card_id  
+                FROM user_card where user_id =:userId)";
+      
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT *
+              FROM master_card
+              WHERE INET_ATON(ios_version_id)<=INET_ATON('".$iosVer."') AND master_card_id NOT IN 
+                (SELECT master_card_id  
+                FROM user_card where user_id =:userId)";
+    }else{
+      $sql = "SELECT *
+              FROM master_card
+              WHERE is_available!=0 AND master_card_id NOT IN 
+                (SELECT master_card_id  
+                FROM user_card where user_id =:userId)";
+    }
 
+   
+
+    $result = database::doSelect($sql,array('userId' => $userId));
+    return $result;
+  }
   public function getLockedMasterCardListIdWithStadium($userId, $masterStId, $options=array())
   {
     $sql = "SELECT *
@@ -668,6 +808,110 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
                           'status' => CONTENT_ACTIVE));
         }
       }
+    }
+  }
+  public function cardUnlockWithVersion($userId, $masterStadiumId, $androidVerId, $iosVerId, $options=array())
+  {
+    $unlockingCardList = $this->getMasterCardListForUnlockingWithVersion($masterStadiumId, $androidVerId, $iosVerId);
+    //print_log("---------------------------------Unlocked List-------------------------------------------------");
+    //print_log($unlockingCardList);
+    //print_log("--------------------------------End Unlocked List-----------------------------------------------");
+    $cardCount=1; 
+    foreach($unlockingCardList as $defaultCard)
+    {
+      /*if(!empty($defaultCard['android_version_id']) && !empty($androidVerId)){  
+        if(version_compare($defaultCard['android_version_id'],$androidVerId, '<=')){*/
+          $userCard = $this->getUserCardDetailForMasterCardId($userId, $defaultCard['master_card_id']);
+          //print_log("---------------------------------Card Data List-------------------------------------------------");
+          //print_log($defaultCard['master_card_id']);
+          //print_log($userCard);
+          //print_log("--------------------------------End Card Data List----------------------------------------------");
+          $userCard = $this->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
+          $userCardLevel = $this->getUserCardUnlockLevelOnRarityTypeAndMasterCardId($defaultCard['master_card_id']);
+          $cardLevelId=(empty($userCardLevel['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCardLevel["level_id"];
+          //$cardLevelId = (empty($userCard['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCard["level_id"];
+          //print_log($cardLevelId);
+          if(empty($userCard['user_card_count'])){
+            $userCardCount = (empty($cardCount))?DEFAULT_CARD_COUNT:$cardCount;
+          }else{
+            $userCardCount = $cardCount+$userCard['user_card_count'];
+          }
+          if(empty($userCard))
+          {
+            $userCardId = $this->insertUserCard(array(
+                          'user_id' => $userId,
+                          'master_card_id' => $defaultCard['master_card_id'],
+                          'is_deck' => CONTENT_INACTIVE,
+                          'level_id' => $cardLevelId,
+                          'user_card_count' => $userCardCount,
+                          'created_at' => date('Y-m-d H:i:s'),
+                          'status' => CONTENT_ACTIVE ));
+        
+            $cardPropertyList = $this->getMasterCardPropertyList($defaultCard['master_card_id']);
+            //print_log("--------------------------property-----------------------------------------------");
+            //print_log($cardPropertyList);
+            //print_log("------------------------End property-----------------------------------------------");
+            foreach($cardPropertyList as $cardProperty)
+            {
+              $cardPropertyValue = $this->getCardPropertyValue($defaultCard['master_card_id'], $cardLevelId, $cardProperty['card_property_id']);
+              $this->insertUserCardProperty(array(
+                              'user_id' => $userId,
+                              'card_property_id' => $cardProperty['card_property_id'],
+                              'user_card_id' => $userCardId,
+                              'user_card_property_value' => $cardPropertyValue['card_property_value'],
+                              'created_at' => date('Y-m-d H:i:s'),
+                              'status' => CONTENT_ACTIVE));
+            }
+          }
+       /* }
+      }*/
+      /*
+      if(!empty($defaultCard['ios_version_id']) && !empty($iosVerId)){
+          if(version_compare($defaultCard['ios_version_id'],$iosVerId, '<=')){
+          $userCard = $this->getUserCardDetailForMasterCardId($userId, $defaultCard['master_card_id']);
+          //print_log("---------------------------------Card Data List-------------------------------------------------");
+          //print_log($defaultCard['master_card_id']);
+          //print_log($userCard);
+          //print_log("--------------------------------End Card Data List----------------------------------------------");
+          $userCard = $this->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
+          $userCardLevel = $this->getUserCardUnlockLevelOnRarityTypeAndMasterCardId($defaultCard['master_card_id']);
+          $cardLevelId=(empty($userCardLevel['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCardLevel["level_id"];
+          //$cardLevelId = (empty($userCard['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCard["level_id"];
+          //print_log($cardLevelId);
+          if(empty($userCard['user_card_count'])){
+            $userCardCount = (empty($cardCount))?DEFAULT_CARD_COUNT:$cardCount;
+          }else{
+            $userCardCount = $cardCount+$userCard['user_card_count'];
+          }
+          if(empty($userCard))
+          {
+            $userCardId = $this->insertUserCard(array(
+                          'user_id' => $userId,
+                          'master_card_id' => $defaultCard['master_card_id'],
+                          'is_deck' => CONTENT_INACTIVE,
+                          'level_id' => $cardLevelId,
+                          'user_card_count' => $userCardCount,
+                          'created_at' => date('Y-m-d H:i:s'),
+                          'status' => CONTENT_ACTIVE ));
+        
+            $cardPropertyList = $this->getMasterCardPropertyList($defaultCard['master_card_id']);
+            //print_log("--------------------------property-----------------------------------------------");
+            //print_log($cardPropertyList);
+            //print_log("------------------------End property-----------------------------------------------");
+            foreach($cardPropertyList as $cardProperty)
+            {
+              $cardPropertyValue = $this->getCardPropertyValue($defaultCard['master_card_id'], $cardLevelId, $cardProperty['card_property_id']);
+              $this->insertUserCardProperty(array(
+                              'user_id' => $userId,
+                              'card_property_id' => $cardProperty['card_property_id'],
+                              'user_card_id' => $userCardId,
+                              'user_card_property_value' => $cardPropertyValue['card_property_value'],
+                              'created_at' => date('Y-m-d H:i:s'),
+                              'status' => CONTENT_ACTIVE));
+            }
+          }
+        }
+      }*/
     }
   }
 

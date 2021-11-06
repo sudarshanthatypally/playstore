@@ -34,6 +34,7 @@ class userClaimKathikaAction extends baseAction{
   {
     $userLib = autoload::loadLibrary('queryLib', 'user');
     $kathikaLib = autoload::loadLibrary('queryLib', 'kathika');
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
 
     $result = array();
     $userId = $this->userId;
@@ -44,11 +45,11 @@ class userClaimKathikaAction extends baseAction{
       $this->setResponse('KATHIKA_CRYSTAL_FAILED');
       return new ArrayObject();  
     }
-    print_log("=========================== userClaimKathikaAction =================================");
+   /* print_log("=========================== userClaimKathikaAction =================================");
     print_log("user crystal::".$user['crystal']);
     print_log("kathika crystal::".$kathikaDetails['required_crystal_amount']);
     print_log("=========================== userClaimKathikaAction END =================================");
-  
+  */
     if($checkKathika < 1 ){
       $remain_crystal = $user['crystal'] - $kathikaDetails['required_crystal_amount'];
       $userLib->updateUser($userId, array('crystal' => $remain_crystal));
@@ -78,6 +79,12 @@ class userClaimKathikaAction extends baseAction{
         $this->setResponse('KATHIKA_FAILED');
         return new ArrayObject();
       }
+      $questLib->insertMasterQuestInventory(array(
+        'quest_id' => 3,
+        'time' => date('Y-m-d H:i:s'),
+        'user_id' => $this->userId,
+        'status' => CONTENT_ACTIVE,
+        'created_at' => date('Y-m-d H:i:s')));
 
       $this->setResponse('SUCCESS');
       return $result;

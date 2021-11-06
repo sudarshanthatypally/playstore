@@ -53,7 +53,8 @@ class roomSaveResultAction extends baseAction{
     $cardLib = autoload::loadLibrary('queryLib', 'card');
     $deckLib = autoload::loadLibrary('queryLib', 'deck');
     $inviteLib = autoload::loadLibrary('queryLib', 'invite');
-    date_default_timezone_set("Asia/Calcutta");
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
+    date_default_timezone_set("Asia/Kolkata");
     $result = array();
     $cubeBonus = new ArrayObject();
     $responseFormat  = new ArrayObject();
@@ -68,134 +69,239 @@ class roomSaveResultAction extends baseAction{
       return $responseFormat;
     }
     if($this->room_type==3){ 
-      if($this->winStatus == BATTLE_WON_STATUS)
-        $oppBattleStatus = BATTLE_LOST_STATUS;
-      elseif($this->winStatus == BATTLE_DRAW_STATUS)
-        $oppBattleStatus = BATTLE_WON_STATUS;
-      else
-        $oppBattleStatus = BATTLE_WON_STATUS;
+        if($this->winStatus == BATTLE_WON_STATUS){
+          $oppBattleStatus = BATTLE_LOST_STATUS;
+        }elseif($this->winStatus == BATTLE_DRAW_STATUS){
+          $oppBattleStatus = BATTLE_WON_STATUS;
+        }else{
+          $oppBattleStatus = BATTLE_WON_STATUS;
+        }
 
-        $oppUserData = $userLib->getUserDetail($this->battle_opp_id);
-        $opponentUser = $userLib->getUserDetail($this->battle_opp_id);
-        $oppRelics = $oppUserData['relics'];
-        $userDeckLst = $deckLib->getUserDeckDetail($this->userId);
-        $oppDeckLst = $deckLib->getUserDeckDetail($this->battle_opp_id);
+          $oppUserData = $userLib->getUserDetail($this->battle_opp_id);
+          $opponentUser = $userLib->getUserDetail($this->battle_opp_id);
+          $oppRelics = $oppUserData['relics'];
+          $userDeckLst = $deckLib->getUserDeckDetail($this->userId);
+          
+          //------------------------------------- deck -----------------------------
+          //$userDeckLst = $deckLib->getUserDeckDetail($userId);
+          if(empty($userDeckLst)){
+            $resultDeck = array();
+            $DeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
+            $deckFLst=array();
+            $resultDeck['current_deck_number']=0;
+            for($i=0;$i<=3;$i++){
+              $deckLst=array();
+              $deckLst['deck_id']=$i;
+              $j=0;
+              if($j<=7){
+                $oppdeckList1=array();
+                foreach ($DeskList as $dcard) 
+                {
+                  $cardPropertyInfo2 = $temp2 = array();
+                  $temp2['master_card_id'] = $dcard['master_card_id'];
+                  $oppdeckList1[] = $temp2;
+                  $j++;
+                }
+              }
+              $deckLst['cards']=$oppdeckList1;
+              $deckFLst[]=$deckLst;
+            }
+            $resultDeck['deck_details']= $deckFLst;
+            $userDeckLst = json_encode($resultDeck);
+            /*$deckLib->insertUserDeck(array(
+              'user_id' => $userId,
+              'deck_data' => json_encode($resultDeck),
+              'created_at' => date('Y-m-d H:i:s'),
+              'status' => CONTENT_ACTIVE
+            ));*/
+          }
+      //--------------------------------------------- deck ----------------------------
+          $oppDeckLst = $deckLib->getUserDeckDetail($this->battle_opp_id);
+          
+          //------------------------------------- deck -----------------------------
+          //$userDeckLst = $deckLib->getUserDeckDetail($userId);
+          if(empty($oppDeckLst)){
+            $resultDeck = array();
+            $DeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
+            $deckFLst=array();
+            $resultDeck['current_deck_number']=0;
+            for($i=0;$i<=3;$i++){
+              $deckLst=array();
+              $deckLst['deck_id']=$i;
+              $j=0;
+              if($j<=7){
+                $oppdeckList1=array();
+                foreach ($DeskList as $dcard) 
+                {
+                  $cardPropertyInfo2 = $temp2 = array();
+                  $temp2['master_card_id'] = $dcard['master_card_id'];
+                  $oppdeckList1[] = $temp2;
+                  $j++;
+                }
+              }
+              $deckLst['cards']=$oppdeckList1;
+              $deckFLst[]=$deckLst;
+            }
+            $resultDeck['deck_details']= $deckFLst;
+            $oppDeckLst = json_encode($resultDeck);
+            /*$deckLib->insertUserDeck(array(
+              'user_id' => $userId,
+              'deck_data' => json_encode($resultDeck),
+              'created_at' => date('Y-m-d H:i:s'),
+              'status' => CONTENT_ACTIVE
+            ));*/
+          }
+      //--------------------------------------------- deck ----------------------------
 
-        $userDeck = $deckLib->getUserDeckDetail($this->userId);
-      if(!empty($userDeck)) {
-        $deckData = json_decode($userDeck['deck_data'],true);
-        $deckCards = formatArr($deckData['deck_details'], 'deck_id');
-        $data = (array_column($deckCards[$deckData['current_deck_number']]['cards'], 'master_id'));
-        $usersDeskList = $cardLib->getUserCardForCurrentDeck($this->userId, DECK_ACTIVE, implode(',',$data)); 
-      } else {
-        $usersDeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
-      }
+          $userDeck = $deckLib->getUserDeckDetail($this->userId);
+        /*if(!empty($userDeck)) {
+          $deckData = json_decode($userDeck['deck_data'],true);
+          $deckCards = formatArr($deckData['deck_details'], 'deck_id');
+          $data = (array_column($deckCards[$deckData['current_deck_number']]['cards'], 'master_id'));
+          $usersDeskList = $cardLib->getUserCardForCurrentDeck($this->userId, DECK_ACTIVE, implode(',',$data)); 
+        } else {*/
+          $usersDeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
+        //}
 
-      $oppDeck = $deckLib->getUserDeckDetail($this->battle_opp_id);
-      if(!empty($oppDeck)) {
-        $deckData = json_decode($oppDeck['deck_data'],true);
-        $deckCards = formatArr($deckData['deck_details'], 'deck_id');
-        $data = (array_column($deckCards[$deckData['current_deck_number']]['cards'], 'master_id'));
-        $oppsDeskList = $cardLib->getUserCardForCurrentDeck($this->battle_opp_id, DECK_ACTIVE, implode(',',$data)); 
-      } else {
-        $oppsDeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
-      }
-      //$usersDeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
-      //$oppsDeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
-      foreach ($usersDeskList as $card)
-      {
-        $cardPropertyInfo = $temp = array();
-        $temp['user_card_id'] = $card['user_card_id'];
-        $temp['master_card_id'] = $card['master_card_id'];
-        $temp['title'] = $card['title'];
-        $temp['card_type'] = $card['card_type'];
-        $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
-        $temp['card_rarity_type'] = $card['card_rarity_type'];
-        $temp['rarity_type_message'] = ($card['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($card['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($card['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
-        $temp['is_deck_message'] = ($card['is_deck'] == CONTENT_ACTIVE)?"in deck":"not in deck";
-        $temp['is_deck'] = $card['is_deck'];
-        $temp['card_level'] = $card['level_id'];
-        //$temp['card_description'] = $card['card_description'];
-        $usrdeckList[] = $temp;
-      }
-      foreach ($oppsDeskList as $oppcard) 
-      {
-        $cardPropertyInfo2 = $temp2 = array();
-        $temp2['user_card_id'] = $oppcard['user_card_id'];
-        $temp2['master_card_id'] = $oppcard['master_card_id'];
-        $temp2['title'] = $oppcard['title'];
-        $temp2['card_type'] = $oppcard['card_type'];
-        $temp2['card_type_message'] = ($oppcard['card_type'] == CARD_TYPE_TROOP)?"Troop":(($oppcard['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
-        $temp2['card_rarity_type'] = $oppcard['card_rarity_type'];
-        $temp2['rarity_type_message'] = ($oppcard['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($oppcard['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($oppcard['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
-        $temp2['is_deck_message'] = ($oppcard['is_deck'] == CONTENT_ACTIVE)?"in deck":"not in deck";
-        $temp2['is_deck'] = $oppcard['is_deck'];
-        $temp2['card_level'] = $oppcard['level_id'];
-        //$temp2['card_description'] = $oppcard['card_description'];
-        $oppdeckList[] = $temp2;
-      } 
-      $kingdomBattleData = $kingdomLib->getKingdomBattleByStateMsgType($this->userId, 3, 5);
-      $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgListMsgType($this->userId, 3, 5);
-      $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->userId);
-      $msg_delete_id=$kingdomBattleData['km_id'];
-
-      $msgId = $kingdomLib->insertKingdomMsg(array(
-        'kingdom_id' => $user['kingdom_id'],
-        'sent_by' => $this->userId,
-        'received_by' => $this->battle_opp_id,
-        'msg_type' => 3,
-        'chat_type' => 2,
-        'battle_type' => 1,
-        'battle_state' => 3,
-        'msg_delete_id' => $msg_delete_id, 
-        'created_at' => date('Y-m-d H:i:s')
-      ));
-      $battleId = $userLib->insertFriendlyBattleHistory(array(
-        'user_id' => $this->userId, 
-        'opponent_id' => $this->battle_opp_id,
-        'room_id' => $this->roomId,
-        'user_circlet' => $this->circlet,
-        'opponent_circlet' => $this->opponent_circlet,
-        'user_trophies' => $uRelics,
-        'opponent_trophies' => $oppRelics,
-        'user_deck' => $userDeckLst['deck_data'],
-        'opponent_deck' => $oppDeckLst['deck_data'],
-        'user_winstatus' => $this->winStatus,
-        'opponent_winstatus' => $oppBattleStatus,
-        'user_stadium' => $user['master_stadium_id'],
-        'opp_stadium' => $oppUserData['master_stadium_id'], 
-        'km_id' => $msgId,
-        'created_at' => date('Y-m-d H:i:s'),
-        'userDeckLst'=> json_encode($usrdeckList),
-        'oppDeckLst'=> json_encode($oppdeckList),
-        'created_by' => $this->userId));
-    
-        //$opponentUser = $roomLib->getOpponentRoomUserForRoomAndUser($this->userId, $this->roomId);
-   // if(!empty($opponentUser) && $opponentUser['is_ai'] != CONTENT_ACTIVE){
-        //if($oppUserData['is_ai']!=1){
-      $battleOpponentId = $userLib->insertFriendlyBattleHistory(array(
-                    'user_id' => $this->battle_opp_id,
-                    'opponent_id' => $this->userId,
-                    'room_id' => $this->roomId,
-                    'user_circlet' => $this->opponent_circlet,
-                    'opponent_circlet' => $this->circlet,
-                    'user_trophies' => $oppRelics,
-                    'opponent_trophies' => $uRelics,
-                    'user_deck' => $oppDeckLst['deck_data'],
-                    'opponent_deck' => $userDeckLst['deck_data'],
-                    'user_winstatus' => $oppBattleStatus,
-                    'opponent_winstatus' => $this->winStatus,
-                    'user_stadium' => $oppUserData['master_stadium_id'],
-                    'opp_stadium' => $user['master_stadium_id'], 
-                    'userDeckLst'=> json_encode($usrdeckList),
-                    'oppDeckLst'=> json_encode($oppdeckList),
-                    'km_id' => $msgId,
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'created_by' => $this->userId));    
-      //}
-      $responseFormat = array('room_type' => $this->room_type);
-      $this->setResponse('SUCCESS');
-      return $responseFormat;
+        $oppDeck = $deckLib->getUserDeckDetail($this->battle_opp_id);
+       /* if(!empty($oppDeck)) {
+          $deckData = json_decode($oppDeck['deck_data'],true);
+          $deckCards = formatArr($deckData['deck_details'], 'deck_id');
+          $data = (array_column($deckCards[$deckData['current_deck_number']]['cards'], 'master_id'));
+          $oppsDeskList = $cardLib->getUserCardForCurrentDeck($this->battle_opp_id, DECK_ACTIVE, implode(',',$data)); 
+        } else {*/
+          $oppsDeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
+        //}
+        //$usersDeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
+        //$oppsDeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
+        foreach ($usersDeskList as $card)
+        {
+          $cardPropertyInfo = $temp = array();
+          $temp['user_card_id'] = $card['user_card_id'];
+          $temp['master_card_id'] = $card['master_card_id'];
+          $temp['title'] = $card['title'];
+          $temp['card_type'] = $card['card_type'];
+          $temp['card_type_message'] = ($card['card_type'] == CARD_TYPE_TROOP)?"Troop":(($card['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
+          $temp['card_rarity_type'] = $card['card_rarity_type'];
+          $temp['rarity_type_message'] = ($card['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($card['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($card['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
+          $temp['is_deck_message'] = ($card['is_deck'] == CONTENT_ACTIVE)?"in deck":"not in deck";
+          $temp['is_deck'] = $card['is_deck'];
+          $temp['card_level'] = $card['level_id'];
+          //$temp['card_description'] = $card['card_description'];
+          $usrdeckList[] = $temp;
+        }
+        foreach ($oppsDeskList as $oppcard) 
+        {
+          $cardPropertyInfo2 = $temp2 = array();
+          $temp2['user_card_id'] = $oppcard['user_card_id'];
+          $temp2['master_card_id'] = $oppcard['master_card_id'];
+          $temp2['title'] = $oppcard['title'];
+          $temp2['card_type'] = $oppcard['card_type'];
+          $temp2['card_type_message'] = ($oppcard['card_type'] == CARD_TYPE_TROOP)?"Troop":(($oppcard['card_type'] == CARD_TYPE_SPELL)?"Spell":"Building");
+          $temp2['card_rarity_type'] = $oppcard['card_rarity_type'];
+          $temp2['rarity_type_message'] = ($oppcard['card_rarity_type'] == CARD_RARITY_COMMON)?"Common":(($oppcard['card_rarity_type'] == CARD_RARITY_RARE)?"Rare":(($oppcard['card_rarity_type'] == CARD_RARITY_EPIC)?"Epic":"Ultra Epic"));
+          $temp2['is_deck_message'] = ($oppcard['is_deck'] == CONTENT_ACTIVE)?"in deck":"not in deck";
+          $temp2['is_deck'] = $oppcard['is_deck'];
+          $temp2['card_level'] = $oppcard['level_id'];
+          //$temp2['card_description'] = $oppcard['card_description'];
+          $oppdeckList[] = $temp2;
+        } 
+        $kingdomBattleData = $kingdomLib->getKingdomBattleByStateMsgType($this->userId, 3, 5);
+        if(empty($kingdomBattleData)){
+          $kingdomBattleData = $kingdomLib->getKingdomBattleByStateMsgTypeByOppId($this->userId, $this->battle_opp_id, 3, 5);
+        }
+        $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgListMsgType($this->userId, 3, 5);
+        if(empty($deletemsgId)){
+          $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgListMsgTypeByRoom($this->userId,$this->roomId, 3, 5);
+          if(empty($deletemsgId)){
+            $deletemsgId = $kingdomLib->deleteKingdomRequestedMsgListMsgTypeByOpp($this->userId,$this->battle_opp_id, 3, 5);
+          }
+        }
+        $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->userId);
+        if(empty($frndlyBattleDetails)){
+          $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByOppId($this->battle_opp_id);
+        }
+        $msg_delete_id=$kingdomBattleData['km_id'];
+        $isMsg_RoomId_check = $userLib->getCheckRoomIdInmsgLst($this->roomId);
+        if(!empty($deletemsgId) || empty($isMsg_RoomId_check)){  //&& empty($isMsg_RoomId_check)
+          $msgId = $kingdomLib->insertKingdomMsg(array(
+            'kingdom_id' => $user['kingdom_id'],
+            'sent_by' => $this->userId,
+            'received_by' => $this->battle_opp_id,
+            'msg_type' => 3,
+            'chat_type' => 2,
+            'battle_type' => 1,
+            'room_id' => $this->roomId,
+            'battle_state' => 3,
+            'msg_delete_id' => $msg_delete_id, 
+            'created_at' => date('Y-m-d H:i:s')
+          ));
+        }/*else{
+          $msgId = $kingdomLib->insertKingdomMsg(array(
+            'kingdom_id' => $user['kingdom_id'],
+            'sent_by' => $this->userId,
+            'received_by' => $this->battle_opp_id,
+            'msg_type' => 3,
+            'chat_type' => 2,
+            'battle_type' => 1,
+            'room_id' => $this->roomId,
+            'battle_state' => 3,
+            'msg_delete_id' => "", 
+            'created_at' => date('Y-m-d H:i:s')
+          ));
+        }*/
+        
+        
+        //$is_RoomId_check = $userLib->getCheckRoomIdInFriendlyBattleHistoryList($this->roomId);
+        if($this->userId != 0 && $this->battle_opp_id != 0){
+          //&& empty($is_RoomId_check )
+            $battleId = $userLib->insertFriendlyBattleHistory(array(
+              'user_id' => $this->userId, 
+              'opponent_id' => $this->battle_opp_id,
+              'room_id' => $this->roomId,
+              'user_circlet' => $this->circlet,
+              'opponent_circlet' => $this->opponent_circlet,
+              'user_trophies' => $uRelics,
+              'opponent_trophies' => $oppRelics,
+              'user_deck' => $userDeckLst['deck_data'],
+              'opponent_deck' => $oppDeckLst['deck_data'],
+              'user_winstatus' => $this->winStatus,
+              'opponent_winstatus' => $oppBattleStatus,
+              'user_stadium' => $user['master_stadium_id'],
+              'opp_stadium' => $oppUserData['master_stadium_id'], 
+              'km_id' => $msgId,
+              'created_at' => date('Y-m-d H:i:s'),
+              'userDeckLst'=> json_encode($usrdeckList),
+              'oppDeckLst'=> json_encode($oppdeckList),
+              'created_by' => $this->userId));
+            
+            //$opponentUser = $roomLib->getOpponentRoomUserForRoomAndUser($this->userId, $this->roomId);
+            // if(!empty($opponentUser) && $opponentUser['is_ai'] != CONTENT_ACTIVE){
+           /* if(empty($isMsg_RoomId_check)){
+              $battleOpponentId = $userLib->insertFriendlyBattleHistory(array(
+                'user_id' => $this->battle_opp_id,
+                'opponent_id' => $this->userId,
+                'room_id' => $this->roomId,
+                'user_circlet' => $this->opponent_circlet,
+                'opponent_circlet' => $this->circlet,
+                'user_trophies' => $oppRelics,
+                'opponent_trophies' => $uRelics,
+                'user_deck' => $oppDeckLst['deck_data'],
+                'opponent_deck' => $userDeckLst['deck_data'],
+                'user_winstatus' => $oppBattleStatus,
+                'opponent_winstatus' => $this->winStatus,
+                'user_stadium' => $oppUserData['master_stadium_id'],
+                'opp_stadium' => $user['master_stadium_id'], 
+                'userDeckLst'=> json_encode($usrdeckList),
+                'oppDeckLst'=> json_encode($oppdeckList),
+                'km_id' => $msgId,
+                'created_at' => date('Y-m-d H:i:s'),
+                'created_by' => $this->userId));  
+            }   */
+        }
+        $responseFormat = array('room_type' => $this->room_type);
+        $this->setResponse('SUCCESS');
+        return $responseFormat;
     }
     if($this->winStatus != BATTLE_DRAW_STATUS && $this->winStatus != BATTLE_WON_STATUS && $this->winStatus != BATTLE_LOST_STATUS)
     {
@@ -507,13 +613,83 @@ class roomSaveResultAction extends baseAction{
     $isBadgeGiven =  $badgeLib->checkUserBadge($this->userId);
     $latestBadge = $badgeLib->getUserLatestBadge($this->userId);
 
-    
+    $questLib->insertMasterQuestInventory(array(
+      'quest_id' => 2,
+      'time' => date('Y-m-d H:i:s'),
+      'user_id' => $this->userId,
+      'status' => CONTENT_ACTIVE,
+      'win_status' => $this->winStatus,
+      'room_id' => $this->roomId,
+      'created_at' => date('Y-m-d H:i:s')));
 
     $win_rate = (((empty($userParamList['total_wins'])?$user['total_wins']:$userParamList['total_wins'])/(empty($userParamList['total_match'])?$user['total_match']:$userParamList['total_match']))*100);
     
 
+    //$userDeckLst = $deckLib->getUserDeckDetail($this->userId);
+    //$oppDeckLst = $deckLib->getUserDeckDetail($this->battle_opp_id);
     $userDeckLst = $deckLib->getUserDeckDetail($this->userId);
+          
+    //------------------------------------- deck -----------------------------
+    //$userDeckLst = $deckLib->getUserDeckDetail($userId);
+    if(empty($userDeckLst)){
+      $resultDeck = array();
+      $DeskList = $cardLib->getUserCardForActiveDeck($this->userId, DECK_ACTIVE); 
+      $deckFLst=array();
+      $resultDeck['current_deck_number']=0;
+      for($i=0;$i<=3;$i++){
+        $deckLst=array();
+        $deckLst['deck_id']=$i;
+        $j=0;
+        if($j<=7){
+          $oppdeckList1=array();
+          foreach ($DeskList as $dcard) 
+          {
+            $cardPropertyInfo2 = $temp2 = array();
+            $temp2['master_card_id'] = $dcard['master_card_id'];
+            $oppdeckList1[] = $temp2;
+            $j++;
+          }
+        }
+        $deckLst['cards']=$oppdeckList1;
+        $deckFLst[]=$deckLst;
+      }
+      $resultDeck['deck_details']= $deckFLst;
+      $userDeckLst = json_encode($resultDeck);
+    }
+//--------------------------------------------- deck ----------------------------
     $oppDeckLst = $deckLib->getUserDeckDetail($this->battle_opp_id);
+    
+    //------------------------------------- deck -----------------------------
+     if(empty($oppDeckLst)){
+      $resultDeck = array();
+      $DeskList = $cardLib->getUserCardForActiveDeck($this->battle_opp_id, DECK_ACTIVE); 
+      $deckFLst=array();
+      $resultDeck['current_deck_number']=0;
+      for($i=0;$i<=3;$i++){
+        $deckLst=array();
+        $deckLst['deck_id']=$i;
+        $j=0;
+        if($j<=7){
+          $oppdeckList1=array();
+          foreach ($DeskList as $dcard) 
+          {
+            $cardPropertyInfo2 = $temp2 = array();
+            $temp2['master_card_id'] = $dcard['master_card_id'];
+            $oppdeckList1[] = $temp2;
+            $j++;
+          }
+        }
+        $deckLst['cards']=$oppdeckList1;
+        $deckFLst[]=$deckLst;
+      }
+      $resultDeck['deck_details']= $deckFLst;
+      $oppDeckLst = json_encode($resultDeck);
+
+    }
+//--------------------------------------------- deck ----------------------------
+
+
+
     $oppUserData = $userLib->getUserDetail($this->battle_opp_id);
     if(empty($oppRelics)){
       $oppRelics=$oppUserData['relics'];
