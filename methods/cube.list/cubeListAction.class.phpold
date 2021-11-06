@@ -1,0 +1,41 @@
+<?php
+/**
+ * Author : Abhijth Shetty
+ * Date   : 06-02-2018
+ * Desc   : This is a controller file for cubeList Action
+ */
+class cubeListAction extends baseAction{
+
+  public function execute()
+  {
+    $inAppPurchaseLib = autoload::loadLibrary('queryLib', 'inAppPurchase');
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $reward = autoload::loadLibrary('queryLib', 'reward');
+    $cubeLib = autoload::loadLibrary('queryLib', 'cube');
+
+    //Based on user current stadium cubeLists are given.
+    $result = array();
+    $user = $userLib->getUserDetail($this->userId);
+    $cubeInventoryList = $inAppPurchaseLib->getMasterCubeInventoryListBasedOnStadium($user['master_stadium_id']);
+
+    foreach ($cubeInventoryList as $cubeInventory)
+    {
+      $temp = array();
+      $temp['master_cube_inventory_id'] = $cubeInventory['master_cube_inventory_id'];
+      $temp['cube_id'] = $cubeInventory['cube_id'];
+      $temp['master_stadium_id'] = $cubeInventory['master_stadium_id'];
+      $temp['required_crystal'] = $cubeInventory['amount'];
+      $cubeReward = $cubeLib->getCubeRewardDetailForStadium($cubeInventory['cube_id'], $user['master_stadium_id']);
+      $temp['gold_bonus'] = $cubeReward['gold'];
+      $temp['card_count'] = $cubeReward['card_count'];
+      //getting possible card range of each type
+      $temp['common_count'] = MIN_CARD_COUNT." - ".($cubeReward['card_count'] - $cubeReward['rare'] - $cubeReward['ultra_rare']);
+      $temp['rare_count'] = $cubeReward['rare']." - ".($cubeReward['card_count'] - $cubeReward['rare'] - $cubeReward['ultra_rare']);
+      $temp['ultra_rare_count'] = $cubeReward['ultra_rare']." - ".($cubeReward['card_count'] - $cubeReward['rare'] - $cubeReward['ultra_rare']);
+      $result[] = $temp;
+    }
+
+    $this->setResponse('SUCCESS');
+    return array('inventory_list' => $result, 'cube_id_message' => "1-Titanium; 2- Diamond; 3- Platinum");
+  }
+}

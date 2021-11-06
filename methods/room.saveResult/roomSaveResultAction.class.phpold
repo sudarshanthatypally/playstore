@@ -1,0 +1,227 @@
+<?php
+/**
+ * Author : Abhijth Shetty
+ * Date   : 06-01-2018
+ * Desc   : This is a controller file for roomSaveResult Action
+ */
+class roomSaveResultAction extends baseAction{
+
+  public function execute()
+  {
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $roomLib = autoload::loadLibrary('queryLib', 'room');
+    $cubeLib = autoload::loadLibrary('queryLib', 'cube');
+    $rewardLib = autoload::loadLibrary('queryLib', 'reward');
+    $masterLib = autoload::loadLibrary('queryLib', 'master');
+    $achievementLib = autoload::loadLibrary('queryLib', 'achievement');
+    $badgeLib = autoload::loadLibrary('queryLib', 'badge');
+    $cardLib = autoload::loadLibrary('queryLib', 'card');
+
+    $result = array();
+    $cubeBonus = new ArrayObject();
+    $responseFormat  = new ArrayObject();
+    $slotList = array(1, 2, 3, 4);
+
+    $user = $userLib->getUserDetail($this->userId);
+
+    if($this->winStatus != BATTLE_DRAW_STATUS && $this->winStatus != BATTLE_WON_STATUS && $this->winStatus != BATTLE_LOST_STATUS)
+    {
+      $this->setResponse('CUSTOM_ERROR', array('error'=>'invalid option'));
+      return new ArrayObject();
+    }
+
+    if($this->winStatus > -1)
+    {
+      $matchStatusReward = $rewardLib->getMasterMatchStatusRewardForStadium($this->winStatus, $user['master_stadium_id']);
+      $roomUserActive = $roomLib->getWaitingRoomActiveForRoom($this->userId, $this->roomId);
+
+      if(!empty($roomUserActive))
+      {
+        if($this->circlet != "")
+        {
+          $roomParamList['circlet'] = $this->circlet;
+          $userParamList['circlet'] = $result['circlet'] = ($user['circlet'] + $this->circlet);
+        }
+
+        $roomParamList['win_status'] = $this->winStatus;
+        $relics = ($user['relics'] + $matchStatusReward['relics']);
+        $userParamList['total_wins'] = ($this->winStatus == BATTLE_WON_STATUS)? $user['total_wins']+1:$user['total_wins'];
+        $userParamList['total_match'] = $user['total_match']+1;
+        $userParamList['relics'] = ($relics <= MIN_RELICS_COUNT)? MIN_RELICS_COUNT:$relics;//Set minimum relics to = 0.
+        $userParamList['xp'] = $user['xp'] + $matchStatusReward['xp'];
+        $userParamList['gold'] = $user['gold'] + $matchStatusReward['gold'];
+
+        //Based on relics count update the player stadium.
+        $masterStadium = $masterLib->getStadiumIdBasedOnRelics($userParamList['relics']);
+        $userParamList['master_stadium_id'] =  $masterStadium['master_stadium_id'];
+        // if($relics > $user['relics']) {
+        //   $masterStadium = $masterLib->getStadiumIdBasedOnRelics($userParamList['relics']);
+        //   $userParamList['master_stadium_id'] =  $masterStadium['master_stadium_id'];
+        // } else {
+        //   //destroy stadium based on relics deduction
+        //   $destroyedStadium = $masterLib->getDestroyedStadiumIdBasedOnRelics($userParamList['relics']);
+        //   $userParamList['master_stadium_id'] = $destroyedStadium['master_stadium_id'] - 1;
+        //   ($userParamList['master_stadium_id'] <= DEFAULT_STADIUM) ? $userParamList['master_stadium_id'] = $user['master_stadium_id'] : false;
+        // }
+        //on stadium level up unlock the cards
+        if($user['master_stadium_id'] < $userParamList['master_stadium_id']) {
+          $cardLib->cardUnlock($this->userId, $userParamList['master_stadium_id']);
+        }
+
+        //if draw or lost update win streak to 0
+        if($this->winStatus == BATTLE_WON_STATUS )
+        {
+          $roomParamList['win_streak'] = 0;
+        }
+        // Based on probabilty getting the cube
+        if($this->winStatus == BATTLE_WON_STATUS )
+        {
+          //update win streak for user
+          $userPreviousRoom = $roomLib->getPreviousWaitingRoomDetail($this->userId, $this->roomId);
+          if(!empty($userPreviousRoom) && $userPreviousRoom['win_status'] == BATTLE_WON_STATUS)
+          {
+            $roomParamList['win_streak'] = $userPreviousRoom['win_streak'] + 1;
+          } else {
+            $roomParamList['win_streak'] = 1;
+          }
+          //copper cube is the free cube
+          do{
+            $randomCube=rand(1 , 5 );
+          }while($randomCube==1);
+
+          $randomCubeProbability = rand(1 , 100);
+
+          //check user played first match or Not, if first match give one cube
+          $userMatch = $roomLib->getRoomPlayedListForUser($this->userId);
+          if(count($userMatch) == 1)
+          {
+            $cubeProbability = $cubeLib->getRandomCubeDetailForStadium($randomCube, $user['master_stadium_id']);
+            if(1)
+            {
+              $cubeBonus['cube_id'] = $roomParamList['cube_id'] = $randomCube;
+              $userRewardList = $cubeLib->CheckEligibilityOfCubeReward($this->userId);
+
+              if(count($userRewardList) < MIN_CUBE_REWARD)
+              {
+                foreach($userRewardList as $reward){
+                  $slotsFilled[] = $reward['slot_id'];
+                }
+              }
+              $cubeBonus['is_lapsed'] = (count($userRewardList)>= MIN_CUBE_REWARD)?true:false;
+            }
+          } else {
+            $cubeProbability = $cubeLib->getCubeProbabilityDetailForStadium($randomCube, $user['master_stadium_id'], $randomCubeProbability);
+
+            if(!empty($cubeProbability))
+            //if(1)
+            {
+              $cubeBonus['cube_id'] = $roomParamList['cube_id'] = $randomCube;
+              $userRewardList = $cubeLib->CheckEligibilityOfCubeReward($this->userId);
+
+              if(count($userRewardList) < MIN_CUBE_REWARD)
+              {
+                foreach($userRewardList as $reward){
+                  $slotsFilled[] = $reward['slot_id'];
+                }
+              }
+              $cubeBonus['is_lapsed'] = (count($userRewardList)>= MIN_CUBE_REWARD)?true:false;
+            }
+          }
+        }
+
+        // opponent Quits the match in between.
+        if($this->opponentId > -1)
+        {
+          $opponentUser = $userLib->getUserDetail($this->opponentId);
+          $opponentMatchStatusReward = $rewardLib->getMasterMatchStatusRewardForStadium(BATTLE_LOST_STATUS, $opponentUser['master_stadium_id']);
+
+          $opponentParamList['total_wins'] = $opponentUser['total_wins'];
+          $opponentRelicsCount = $opponentUser['relics']+$opponentMatchStatusReward['relics'];
+          $opponentParamList['relics'] = ($opponentRelicsCount <= MIN_RELICS_COUNT)? MIN_RELICS_COUNT:$opponentRelicsCount;//Set minimum relics to = 0.;
+          $opponentParamList['xp'] = $opponentUser['xp'] + $opponentMatchStatusReward['xp'];
+          $opponentParamList['gold'] = $opponentUser['gold'] + $opponentMatchStatusReward['gold'];
+          $masterStadium = $masterLib->getStadiumIdBasedOnRelics($opponentParamList['relics']);
+          $opponentParamList['master_stadium_id'] =  $masterStadium['master_stadium_id'];
+
+          //Update Waiting room and user detail for opponent who quit the match.
+          $roomLib->updateWaitingRoomForPlayerResult($this->roomId, $this->opponentId, array('win_status'=> BATTLE_LOST_STATUS));
+          $roomLib->updateWaitingRoomStatus($this->roomId, $this->opponentId, array('status'=> CONTENT_CLOSED));
+          $userLib->updateUser($this->opponentId, $opponentParamList);
+        }
+
+        //Update Waiting room and user detail.
+        $roomLib->updateWaitingRoomForPlayerResult($this->roomId, $this->userId, $roomParamList);
+        $roomLib->updateWaitingRoomStatus($this->roomId, $this->userId, array('status'=> CONTENT_CLOSED));
+        $userLib->updateUser($this->userId, $userParamList);
+
+        //If player was playing with the AI, upated AI waiting room status, win status.
+        $opponentUser = $roomLib->getOpponentRoomUserForRoomAndUser($this->userId, $this->roomId);
+
+        if(!empty($opponentUser) && $opponentUser['is_ai'] == CONTENT_ACTIVE){
+          if($this->winStatus == BATTLE_WON_STATUS)
+            $aiBattleStatus = BATTLE_LOST_STATUS;
+          else
+            $aiBattleStatus = BATTLE_WON_STATUS;
+
+          $roomLib->updateWaitingRoomStatus($this->roomId, $opponentUser['user_id'], array('status'=> CONTENT_CLOSED, 'win_status' => $aiBattleStatus));
+          $userLib->updateUser($opponentUser['user_id'], array('is_ai_available' => CONTENT_ACTIVE));
+        }
+      }
+    }
+
+    //if user rewarded with a cube then add to user_reward
+    if(!($cubeBonus['is_lapsed']) && !empty($cubeBonus['cube_id']))
+    {
+      $cube = $userLib->getMasterCubeRewardForStadium($cubeBonus['cube_id'], $user['master_stadium_id']);
+      $freeSlot = (array_diff($slotList, $slotsFilled));
+
+      $userLib->insertUserReward(array(
+                  'user_id' => $this->userId,
+                  'cube_id' => $cubeBonus['cube_id'],
+                  'slot_id' => empty($freeSlot)?1:array_pop(array_reverse($freeSlot)),
+                  'master_stadium_id' => $user['master_stadium_id'],
+                  'created_at' => date('Y-m-d H:i:s'),
+                  'status' => CUBE_ACTIVE));
+
+    }
+
+    //Check User eligibity for the Bronze reward
+    // $circlet_count = $rewardLib->checkEligibilityOfBronzeReward($this->userId, $user['master_stadium_id']);
+
+    //Check User Achievement
+    $achieved = $achievementLib->checkUserAchievement($this->userId);
+
+    //levelup the user
+    $isLevelIncreased =  $userLib->checkForUserLevelUp($this->userId);
+
+    //fprovide the badge based on relics count to user
+    $isBadgeGiven =  $badgeLib->checkUserBadge($this->userId);
+    $latestBadge = $badgeLib->getUserLatestBadge($this->userId);
+
+    $user = $userLib->getUserDetail($this->userId);
+    $win_rate = (((empty($userParamList['total_wins'])?$user['total_wins']:$userParamList['total_wins'])/(empty($userParamList['total_match'])?$user['total_match']:$userParamList['total_match']))*100);  
+
+    $responseFormat = array('win_status' => $this->winStatus,
+                        'total_wins' => (empty($userParamList['total_wins'])?$user['total_wins']:$userParamList['total_wins']),
+                        'total_match' => (empty($userParamList['total_match'])?$user['total_match']:$userParamList['total_match']),
+                        'total_winrate' => $win_rate,
+                        'master_stadium_id' => (empty($userParamList['master_stadium_id'])?$user['master_stadium_id']:$userParamList['master_stadium_id']),
+                        'cube_bonus' =>  (empty($cubeBonus['cube_id'])?"":$cubeBonus),
+                        'cube_id'=>array($cubeBonus['cube_id']),
+                        'total_xp' => $user['xp'],
+                        'total_gold' => (empty($userParamList['gold'])?$user['gold']:$userParamList['gold']),
+                        'total_relic' => (($this->winStatus == BATTLE_DRAW_STATUS || empty($roomUserActive))?$user['relics']:$userParamList['relics']),
+                        'relic_bonus' => (empty($roomUserActive)?0:$matchStatusReward['relics']),
+                        'xp_bonus' => (empty($roomUserActive)?0:$matchStatusReward['xp']),
+                        'gold_bonus' => (empty($roomUserActive)?0:$matchStatusReward['gold']),
+                        'cube_id_message' => "1-Titanium; 2- Diamond; 3- Platinum",
+                        'win_status_message' => "1-Win; 2-Lost; 3-Draw",
+                        'achievement' => $achieved,
+                        'is_badge_given' => $isBadgeGiven,
+                        'current_badge' => empty($latestBadge['master_badge_id'])?0:$latestBadge['master_badge_id']
+                      );
+
+    $this->setResponse('SUCCESS');
+    return $responseFormat;
+  }
+}

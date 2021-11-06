@@ -1,0 +1,455 @@
+<?php
+class card{
+  //Singleton
+  protected static $objInstance;
+
+  public static function get(){
+    if(!isset(self::$objInstance)){
+      $class=__CLASS__;
+      self::$objInstance=new $class;
+    }
+    return self::$objInstance;
+  }
+
+  public function getMasterCardListWithStadium($options=array())
+  {
+    $sql = "SELECT mc.master_card_id, mc.title,mc.card_max_level,mc.card_rarity_type,mc.card_description,
+            mc.card_type, mc.is_card_default,ms.title as stadium_title, ms.master_stadium_id
+            FROM master_card mc
+            LEFT JOIN master_stadium ms ON mc.master_stadium_id = ms.master_stadium_id
+            ORDER BY mc.master_card_id";
+
+    $result = database::doSelect($sql);
+    return $result;
+  }
+
+  public function getPercentageofCardwithMasterId($masterId){
+    $sql = "SELECT master_card_id,probability
+            FROM master_card_probability 
+            WHERE master_stadium_id=:masterId AND probability <> 0";
+    $result = database::doSelect($sql, array('masterId'=>$masterId));
+    return $result;
+  }
+  
+  public function getMasterCardDetail($cardId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE master_card_id = :cardId";
+
+    $result = database::doSelectOne($sql, array('cardId' => $cardId));
+    return $result;
+  }
+
+  public function insertMasterCard($options=array())
+  {
+    $sql = "INSERT INTO master_card ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+
+  public function updateMasterCard($masterCardId, $options=array())
+  {
+    $sql = "UPDATE master_card SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE master_card_id =:masterCardId";
+    $options['masterCardId'] = $masterCardId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
+
+  public function insertUserCard($options=array())
+  {
+    $sql = "INSERT INTO user_card ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+
+  public function getUserCardList($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_card
+            WHERE user_id = :userId";
+
+    $result = database::doSelect($sql, array('userId'=>$userId));
+    return $result;
+  }
+
+  public function getUserCardDetail($userCardId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_card
+            WHERE user_card_id = :userCardId";
+
+    $result = database::doSelectOne($sql, array('userCardId' => $userCardId));
+    return $result;
+  }
+
+  public function getUserCardWithProperty($userId, $masterCardId, $options=array())
+  {
+    $sql = "SELECT ucp.user_card_property_id, cp.card_property_id, ucp.user_card_property_value, cp.property_id,cp.property_name,cp.is_default
+            FROM user_card uc
+            INNER JOIN user_card_property ucp ON uc.user_card_id = ucp.user_card_id
+            INNER JOIN card_property cp ON ucp.card_property_id = cp.card_property_id
+            INNER JOIN master_card mc ON uc.master_card_id = mc.master_card_id
+            WHERE uc.master_card_id = :masterCardId AND uc.user_id = :userId";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'masterCardId' => $masterCardId));
+    return $result;
+  }
+
+  public function updateUserCard($userCardId, $options=array())
+  {
+    $sql = "UPDATE user_card SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_card_id =:userCardId";
+    $options['userCardId'] = $userCardId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
+
+  public function getUserCardForActiveDeck($userId, $isDeck, $options=array())
+  {
+    $sql = "SELECT uc.*, mc.title, mc.card_type, mc.card_description, mc.card_rarity_type
+            FROM user_card uc
+            INNER JOIN master_card mc ON uc.master_card_id = mc.master_card_id
+            WHERE uc.user_id = :userId AND uc.is_deck = :isDeck
+            ORDER BY uc.user_card_id";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'isDeck' => $isDeck));
+    return $result;
+  }
+
+  public function getMasterCardLevelUpgradeForCardCount($levelId, $rarityType, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card_level_upgrade
+            WHERE level_id = :levelId AND rarity_type = :rarityType";
+
+    $result = database::doSelectOne($sql, array('levelId' => $levelId, 'rarityType' => $rarityType));
+    return $result;
+  }
+
+  public function getMasterCardRarityListBasedOnStadium($masterStadiumId, $rarityType, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id <= :masterStadiumId AND card_rarity_type = :rarityType";
+
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType));
+    return $result;
+  }
+
+  public function getMasterCardBasedOnStadiumAndProbability($masterStadiumId, $probability, $excludeCardId, $limit, $options=array())
+  {
+    $sql = "SELECT mcp.master_card_id
+            FROM master_card_probability mcp
+            WHERE mcp.master_stadium_id = :masterStadiumId AND mcp.probability <=:probability
+            AND mcp.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'probability' => $probability));
+    return $result;
+  }
+
+  /*public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rarityType, $limit, $randomCardProbability, $excludeCardId, $options=array())
+  {
+    $sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND mc.master_stadium_id = :masterStadiumId AND mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType));
+    return $result;
+  }*/
+
+  public function getMasterCardBasedOnStadiumAndRarity($masterStadiumId, $rarityType, $randomCardProbability, $excludeCardId, $options=array())
+  {
+    $sql = "SELECT mcp.master_card_id
+            FROM master_card_probability mcp
+            INNER JOIN master_card ON mcp.master_card_id = master_card.master_card_id
+            WHERE master_card.card_rarity_type = :rarityType
+            AND mcp.master_stadium_id = :masterStadiumId  AND probability >=:randomCardProbability AND mcp.master_card_id NOT IN(".$excludeCardId.")";
+
+    $result = database::doSelectOne($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType, 'randomCardProbability' => $randomCardProbability));
+    return $result;
+  }
+
+  public function getMasterCardProbabilityListBasedOnStadiumAndRarity($masterStadiumId, $rarityType, $probability, $excludeCardId, $limit, $options=array())
+  {
+    $sql = "SELECT mcp.master_card_id
+            FROM master_card_probability mcp
+            INNER JOIN master_card mc ON mcp.master_card_id = mc.master_card_id
+            WHERE mc.card_rarity_type = :rarityType AND mcp.master_stadium_id = :masterStadiumId AND mcp.master_card_id NOT IN(".$excludeCardId.")
+            AND probability <= :probability
+            ORDER BY RAND()
+            LIMIT ".$limit;
+
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType, 'probability' => $probability));
+    return $result;
+  }
+public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rarityType, $probability, $excludeCardId, $limit, $options=array())
+  {
+    $sql = "SELECT mc.master_card_id
+            FROM master_card mc 
+            WHERE mc.card_rarity_type =:rarityType AND mc.master_stadium_id = :masterStadiumId AND mc.master_card_id NOT IN(".$excludeCardId.")
+            ORDER BY RAND()
+            LIMIT ".$limit;
+
+    $result = database::doSelect($sql, array('masterStadiumId' => $masterStadiumId, 'rarityType' => $rarityType));
+    return $result;
+  }
+  public function getMasterLevelUpXpDetail($levelId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_level_up
+            WHERE level_id = :levelId ";
+
+    $result = database::doSelectOne($sql, array('levelId' => $levelId));
+    return $result;
+  }
+
+  public function getMasterLevelUpXpForUser($userId, $levelId, $options=array())
+  {
+    $sql = "SELECT user.user_id, user.xp, master_level_up.*
+            FROM user
+            INNER JOIN master_level_up ON master_level_up.level_id = :levelId
+            WHERE user.user_id = :userId
+            AND user.xp >= master_level_up.xp_to_next_level ";
+
+    $result = database::doSelectOne($sql, array('userId' => $userId, 'levelId' => $levelId));
+    return $result;
+  }
+
+  public function getUserCardListForUserId($userId, $options=array())
+  {
+    $sql = "SELECT user_card.*, master_card.title, master_card.master_stadium_id, master_card.card_rarity_type, master_card.card_type, master_card.card_description
+            FROM user_card
+            INNER JOIN master_card ON user_card.master_card_id = master_card.master_card_id
+            WHERE user_card.user_id = :userId";
+
+    $result = database::doSelect($sql, array('userId' => $userId));
+    return $result;
+  }
+
+  public function getDefaultMasterCardList($options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE is_card_default = :defaultCard
+            ORDER BY master_card_id";
+
+    $result = database::doSelect($sql, array('defaultCard' => CONTENT_ACTIVE));
+    return $result;
+  }
+
+  public function getMasterCardPropertyList($masterCardId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM card_property
+            WHERE master_card_id = :masterCardId";
+
+    $result = database::doSelect($sql, array('masterCardId' => $masterCardId));
+    return $result;
+  }
+
+  public function insertUserCardProperty($options=array())
+  {
+    $sql = "INSERT INTO user_card_property ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+
+  public function getUserCardDetailForMastercardId($userId, $masterCardId, $options=array())
+  {
+    $sql = "SELECT uc.*, mc.card_rarity_type, mc.card_max_level, mc.gold
+            FROM user_card uc
+            INNER JOIN master_card mc  ON uc.master_card_id = mc.master_card_id
+            WHERE uc.user_id = :userId AND uc.master_card_id = :masterCardId";
+
+    $result = database::doSelectOne($sql, array('userId' => $userId, 'masterCardId' => $masterCardId));
+    return $result;
+  }
+
+  public function getCardPropertyLevelUpgradeDetail($masterCardId, $levelId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM card_property_level_upgrade
+            WHERE master_card_id = :masterCardId AND level_id = :levelId";
+
+    $result = database::doSelectOne($sql, array('masterCardId' => $masterCardId, 'levelId' => $levelId));
+    return $result;
+  }
+
+  public function updateUserCardProperty($userCardpropertyId, $options=array())
+  {
+    $sql = "UPDATE user_card_property SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_card_property_id =:userCardpropertyId";
+    $options['userCardpropertyId'] = $userCardpropertyId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
+
+  public function getCardPropertyValue($masterCardId, $levelId, $cardPropertyId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM card_property_level_upgrade
+            WHERE master_card_id = :masterCardId AND level_id = :levelId AND card_property_id = :cardPropertyId";
+
+    $result = database::doSelectOne($sql, array('masterCardId' => $masterCardId, 'levelId' => $levelId, 'cardPropertyId' => $cardPropertyId));
+    return $result;
+  }
+
+  public function getCardPropertyForUseCardId($userCardId, $options=array())
+  {
+    $sql = "SELECT *, user_card_property.user_card_property_value, property_id, property_name,card_property_value,is_default
+            FROM user_card
+            INNER JOIN user_card_property ON user_card.user_card_id = user_card_property.user_card_id
+            INNER JOIN card_property ON user_card_property.card_property_id = card_property.card_property_id
+            WHERE user_card.user_card_id = :userCardId";
+
+    $result = database::doSelect($sql, array('userCardId' => $userCardId));
+    return $result;
+  }
+
+  public function getUserCardForUserIdAndMasterCardId($userId, $masterCardId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_card
+            WHERE user_id = :userId AND master_card_id = :masterCardId";
+
+    $result = database::doSelectOne($sql, array('userId' => $userId, 'masterCardId' => $masterCardId));
+    return $result;
+  }
+
+  public function getMasterCardList($options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card";
+
+    $result = database::doSelect($sql);
+    return $result;
+  }
+
+  public function getUserCardDeckList($userId, $options=array())
+  {
+    $sql = "SELECT user_card.*, master_card.title, master_card.card_rarity_type, master_card.card_type, master_card.card_description
+            FROM user_card
+            INNER JOIN master_card ON user_card.master_card_id = master_card.master_card_id
+            WHERE user_id = :userId AND is_deck = :active";
+
+    $result = database::doSelect($sql, array('userId'=>$userId, 'active'=>CONTENT_ACTIVE));
+    return $result;
+  }
+
+  public function getMasterLevelUpXpForUserLevel( $levelId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_level_up
+            WHERE level_id = :levelId";
+
+    $result = database::doSelectOne($sql, array('levelId' => $levelId));
+    return $result;
+  }
+
+  public function getMasterCardListForStadium($stadiumId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id <=:stadiumId";
+
+    $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
+    return $result;
+  }
+
+  public function getMasterCardListForUnlocking($stadiumId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE master_stadium_id =:stadiumId";
+
+    $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
+    return $result;
+  }
+
+  public function getLockedMasterCardList($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM master_card
+            WHERE master_card_id NOT IN 
+              (SELECT master_card_id  
+              FROM user_card where user_id =:userId)";
+
+    $result = database::doSelect($sql,array('userId' => $userId));
+    return $result;
+  }
+
+  public function cardUnlock($userId, $masterStadiumId, $options=array())
+  {
+    $unlockingCardList = $this->getMasterCardListForUnlocking($masterStadiumId);
+    foreach($unlockingCardList as $defaultCard)
+    {
+      $userCard = $this->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
+      if(empty($userCard))
+      {
+        $userCardId = $this->insertUserCard(array(
+                      'user_id' => $userId,
+                      'master_card_id' => $defaultCard['master_card_id'],
+                      'is_deck' => CONTENT_INACTIVE,
+                      'level_id' => DEFAULT_CARD_LEVEL_ID,
+                      'user_card_count' => DEFAULT_CARD_COUNT,
+                      'created_at' => date('Y-m-d H:i:s'),
+                      'status' => CONTENT_ACTIVE ));
+    
+        $cardPropertyList = $this->getMasterCardPropertyList($defaultCard['master_card_id']);
+        foreach($cardPropertyList as $cardProperty)
+        {
+          $cardPropertyValue = $this->getCardPropertyValue($defaultCard['master_card_id'], DEFAULT_CARD_LEVEL_ID, $cardProperty['card_property_id']);
+          $this->insertUserCardProperty(array(
+                          'user_id' => $userId,
+                          'card_property_id' => $cardProperty['card_property_id'],
+                          'user_card_id' => $userCardId,
+                          'user_card_property_value' => $cardPropertyValue['card_property_value'],
+                          'created_at' => date('Y-m-d H:i:s'),
+                          'status' => CONTENT_ACTIVE));
+        }
+      }
+    }
+  }
+
+  public function getUserCardForCurrentDeck($userId, $isDeck, $cadId, $options=array())
+  {
+    $sql = "SELECT uc.*, mc.title, mc.card_type, mc.card_description, mc.card_rarity_type
+            FROM user_card uc
+            INNER JOIN master_card mc ON uc.master_card_id = mc.master_card_id
+            WHERE uc.user_id = :userId AND uc.is_deck = :isDeck AND uc.master_card_id IN (". $cadId .")
+            ORDER BY uc.user_card_id";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'isDeck' => $isDeck));
+    return $result;
+  }
+}
