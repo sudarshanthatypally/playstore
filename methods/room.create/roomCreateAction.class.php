@@ -169,7 +169,7 @@ class roomCreateAction extends baseAction{
         //$notification = $notificationLib->addNotification(NOTIFICATION_TYPE_INVITE_ACCEPTED,CONTENT_TYPE_USER,$inviteBattleDetail['user_id'], $data);
         //, 'notification_id'=>$notification
        // $inviteBattleDetail = $inviteLib->getActiveBattleInviteDetailForInviteToken($this->inviteToken);
-        $inviteLib->updateBattleInvite($inviteBattleDetail['friendly_invite_id'], array('accepted_user_id'=>$this->userId,'room_id'=>$roomId,'status'=>CONTENT_INPROGRESS));
+        $inviteLib->updateBattleInvite($inviteBattleDetail['friendly_invite_id'], array('room_id'=>$roomId,'status'=>CONTENT_INPROGRESS));//'accepted_user_id'=>$this->userId,
         //$roomLib->updateWaitingRoom($waitingRoomId, array('status' => CONTENT_ACTIVE, 'room_id' => $roomId));
         //$inviteBattleDetail = $inviteLib->getActiveBattleInviteDetailForInviteToken($this->inviteToken);
         $getWaitingDetails = $roomLib->getWaitingPlayerBasedOnUserId($inviteBattleDetail['user_id']);

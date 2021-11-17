@@ -208,14 +208,22 @@ class kingdomReceiveAction extends baseAction{
         }elseif($msg['battle_state']==6){
           $bstate = 6;  // 1 for requested , 2 for pending, 3 for result , 4 for cancel
           $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($msg['received_by']);
-        }
-        else{
+        }else{
           $bstate = 2; // 1 for requested , 2 for pending, 3 for result , 4 for cancel
           $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($msg['sent_by']);
         }
       }
       $temp1['battle_type'] = $msg['battle_type'];
-      $temp1['battle_state']= $bstate;
+      if($bstate==5){
+        if(($frndlyBattleDetails['user_id']==$msg['sent_by'] && $frndlyBattleDetails['accepted_user_id']==$msg['received_by']) || ($frndlyBattleDetails['user_id']==$msg['received_by'] && $frndlyBattleDetails['accepted_user_id']==$msg['sent_by']) && ($frndlyBattleDetails['accepted_user_id']==$this->userId || $frndlyBattleDetails['user_id']==$this->userId)){
+          $bst=5;
+        }else{
+          $bst=4;
+        }
+      }else{
+        $bst=$bstate;
+      }
+      $temp1['battle_state']= $bst;
       $temp1['requested_userid']= $msg['sent_by'];  
       $temp1['battle_isavailable']= $msg['battle_isavailable'];  
       $temp1['result']= "";

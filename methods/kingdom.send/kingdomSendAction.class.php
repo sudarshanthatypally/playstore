@@ -83,6 +83,7 @@ class kingdomSendAction extends baseAction
             //$result['battle_state'] = $this->battleState; // 1 for requested , 2 for pending, 3 for result
           }
           $frndlyBattleDetails = $inviteLib->getFriendlyInviteDetailByUserId($this->receiverId);
+          $inviteLib->updateBattleInvite($frndlyBattleDetails['friendly_invite_id'], array('accepted_user_id'=>$this->userId));
           $result['msg_delete_id']=$kingdomBattleData['km_id'];
       }elseif($this->battleState==10){
         $kingdomMsId = $kingdomLib->getKingdomBattleByState($this->userId);

@@ -50,22 +50,6 @@ class kingdom{
     $result = database::doInsert($sql, $options);
     return $result;
   }
- /* public function getKingdomMsgList($kingdomId, $lastMsgId, $options=array())
-  {
-    if($lastMsgId==0 || empty($lastMsgId)){
-      $sql = "SELECT *
-            FROM kingdom_messages
-            WHERE kingdom_id = :kingdomId";
-    }else{ 
-      $sql = "SELECT *
-            FROM kingdom_messages
-            WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId";
-            //battle_state!=4 AND 
-    }
-    //UNION ALL (SELECT * FROM kingdom_messages WHERE is_update=1 ORDER BY updated_at DESC LIMIT 1)
-    $result = database::doSelect($sql, array('kingdomId' => $kingdomId));
-    return $result;
-  }*/
   public function getKingdomMsgList($kingdomId, $lastMsgId, $options=array())
   {
     if($lastMsgId==0 || empty($lastMsgId)){
