@@ -1,0 +1,49 @@
+name: Epiko CI
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+    install:
+      name: Install
+      runs-on: ubuntu-latest
+      steps:
+        - name: executing pull on branch push
+          uses: appleboy/ssh-action@master
+          with:
+            host: ${{ secrets.INSTANCE_IP_STAGING }}
+            username: ubuntu
+            
+            key: ${{ secrets.KEY_FILE }}
+            port: 22
+            script: "cd /var/www/html/EPIKO/playstore/epiko-backend && git pull origin main --no-edit "
+#             script: echo "Hello world"
+
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: eu-west-2
+
+        - name: doing the aws build
+          id: aws-build
+          run: |
+            image=$(aws ec2 create-image --instance-id i-0c837aa7df381dedf --name "EPIKO-PRE-PROD-$(date +%m%d%Y-%H%M%S)" --description "EPIKO")
+            echo $image
+            image="${image//'%'/'%25'}"
+            image="${image//$'\n'/'%0A'}"
+            image="${image//$'\r'/'%0D'}" 
+            echo "::set-output name=image::$image"
+        - name: echo image id
+          run: echo "${{ steps.aws-build.outputs.image }}"
+
+        - name: echo commit hash
+          run: echo "${{ github.sha }}"
+          
+        - name: create launch template
+          run: aws ec2 create-launch-template-version --launch-template-id lt-0fd15c268864df846 --version-description GithubNodeCI --source-version 14 --launch-template-data '${{ steps.aws-build.outputs.image }}'
+
+        - name: code Deploy trigger
+          run: aws deploy create-deployment --application-name EPIKO --deployment-group-name Epiko-codedeploy --github-location repository=Wharf-Street-Studios/epiko-backend,commitId=${{ github.sha }}

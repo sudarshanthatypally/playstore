@@ -1,0 +1,381 @@
+<?php
+class user{
+  //Singleton
+  protected static $objInstance;
+
+  public static function get(){
+    if(!isset(self::$objInstance)){
+      $class=__CLASS__;
+      self::$objInstance=new $class;
+    }
+    return self::$objInstance;
+  }
+
+  public function getUserList($options=array())
+  {
+    $sql = "SELECT *
+            FROM user";
+
+    $result = database::doSelect($sql);
+    return $result;
+  }
+
+  public function getUserDetail($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE user_id = :userId";
+
+    $result = database::doSelectOne($sql, array('userId'=>$userId));
+    return $result;
+  }
+  public function getUserCrystalDetail($userCubeId, $stadiumId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM master_cube_reward
+            WHERE cube_id = :userCubeId AND master_stadium_id = :stadiumId";
+
+    $result = database::doSelectOne($sql, array('cubeId' => $userCubeId, 'stadiumId' => $stadiumId));
+    return $result;
+  }
+  public function insertUser($options=array())
+  {
+    $sql = "INSERT INTO user ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+ 
+  public function updateUser($userId, $options=array())
+  {
+    $sql = "UPDATE user SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_id =:userId";
+    $options['userId'] = $userId;
+
+    $result = database::doUpdate($sql, $options);
+
+    return $result;
+  }
+
+  public function getUserForName($name, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE name = :name";
+
+    $result = database::doSelectOne($sql, array('name' => $name));
+    return $result;
+  }
+
+  public function getUserForDeviceToken($deviceToken, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE device_token = :deviceToken";
+
+    $result = database::doSelectOne($sql, array('deviceToken' => $deviceToken));
+    return $result;
+  }
+
+  public function getUserForFbAccount($accountId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE fb_access_token = :accountId";
+
+    $result = database::doSelectOne($sql, array('accountId' => $accountId));
+    return $result;
+  }
+
+  public function processRegistration($userId)
+  {
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $cardLib = autoload::loadLibrary('queryLib', 'card');
+
+    $defaultTowerDetail = $cardLib->getMasterLevelUpXpDetail(DEFAULT_USER_LEVEL_ID);
+
+    //default values
+    $userLib->updateUser($userId, array('level_id' => DEFAULT_USER_LEVEL_ID,
+                                        'notification_status' => CONTENT_ACTIVE,
+                                        'god_tower_health' => $defaultTowerDetail['god_tower_health'],
+                                        'stadium_tower_damage' => $defaultTowerDetail['stadium_tower_damage'],
+                                        'god_tower_damage' => $defaultTowerDetail['god_tower_damage'],
+                                        'is_tutorial_completed' => CONTENT_INACTIVE,
+                                        'stadium_tower_health' => $defaultTowerDetail['stadium_tower_health'],
+                                        'is_copper_cube_notification_sent' => CONTENT_ACTIVE,
+                                        'gold' => DEFAULT_GOLD,
+                                        'crystal' => DEFAULT_CRYSTAL));
+
+    $defaultCardList = $cardLib->getDefaultMasterCardList();
+    foreach($defaultCardList as $defaultCard)
+    {
+      $userCard = $cardLib->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
+      if(empty($userCard))
+      {
+        $userCardId = $cardLib->insertUserCard(array(
+                      'user_id' => $userId,
+                      'master_card_id' => $defaultCard['master_card_id'],
+                      'is_deck' => CONTENT_ACTIVE,
+                      'level_id' => DEFAULT_CARD_LEVEL_ID,
+                      'user_card_count' => DEFAULT_CARD_COUNT,
+                      'created_at' => date('Y-m-d H:i:s'),
+                      'status' => CONTENT_ACTIVE ));
+
+        $cardPropertyList = $cardLib->getMasterCardPropertyList($defaultCard['master_card_id']);
+        foreach($cardPropertyList as $cardProperty)
+        {
+          $cardPropertyValue = $cardLib->getCardPropertyValue($defaultCard['master_card_id'], DEFAULT_CARD_LEVEL_ID, $cardProperty['card_property_id']);
+          $cardLib->insertUserCardProperty(array(
+                          'user_id' => $userId,
+                          'card_property_id' => $cardProperty['card_property_id'],
+                          'user_card_id' => $userCardId,
+                          'user_card_property_value' => $cardPropertyValue['card_property_value'],
+                          'created_at' => date('Y-m-d H:i:s'),
+                          'status' => CONTENT_ACTIVE));
+        }
+      }
+    }
+
+
+    // $defaultCardList = $cardLib->getMasterCardList();
+    // foreach($defaultCardList as $defaultCard)
+    // {
+    //   $userCard = $cardLib->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
+    //   if(empty($userCard))
+    //   {
+    //     $userCardId = $cardLib->insertUserCard(array(
+    //                   'user_id' => $userId,
+    //                   'master_card_id' => $defaultCard['master_card_id'],
+    //                   'is_deck' => ($defaultCard['is_card_default'] == CONTENT_ACTIVE)?CONTENT_ACTIVE:CONTENT_INACTIVE,
+    //                   'level_id' => DEFAULT_CARD_LEVEL_ID,
+    //                   'user_card_count' => DEFAULT_CARD_COUNT,
+    //                   'created_at' => date('Y-m-d H:i:s'),
+    //                   'status' => CONTENT_ACTIVE ));
+
+    //     $cardPropertyList = $cardLib->getMasterCardPropertyList($defaultCard['master_card_id']);
+    //     foreach($cardPropertyList as $cardProperty)
+    //     {
+    //       $cardPropertyValue = $cardLib->getCardPropertyValue($defaultCard['master_card_id'], DEFAULT_CARD_LEVEL_ID, $cardProperty['card_property_id']);
+    //       $cardLib->insertUserCardProperty(array(
+    //                       'user_id' => $userId,
+    //                       'card_property_id' => $cardProperty['card_property_id'],
+    //                       'user_card_id' => $userCardId,
+    //                       'user_card_property_value' => $cardPropertyValue['card_property_value'],
+    //                       'created_at' => date('Y-m-d H:i:s'),
+    //                       'status' => CONTENT_ACTIVE));
+    //     }
+    //   }
+    // }
+  }
+
+  public function deleteUser($userId, $options=array())
+  {
+    $sql = "DELETE FROM user
+            WHERE user_id = :userId";
+
+	  $result = database::doDelete($sql, array('userId'=>$userId));
+    return $result;
+  }
+
+  public function checkFacebookId($facebookId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE facebook_id = '".$facebookId."'";
+
+    $result = database::doSelectOne($sql);
+    return $result;
+  }
+
+  public function getUserForGoogleId($accountId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE google_id = :accountId";
+
+    $result = database::doSelectOne($sql, array('accountId' => $accountId));
+    return $result;
+  }
+
+  public function getUserForGameCenterId($gameCenterId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE game_center_id = :gameCenterId";
+
+    $result = database::doSelectOne($sql, array('gameCenterId' => $gameCenterId));
+    return $result;
+  }
+
+  public function getMasterCubeRewardForStadium($cubeId, $stadiumId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM master_cube_reward
+            WHERE cube_id = :cubeId AND master_stadium_id = :stadiumId";
+
+    $result = database::doSelectOne($sql, array('cubeId' => $cubeId, 'stadiumId' => $stadiumId));
+    return $result;
+  }
+
+  public function insertUserReward($options=array())
+  {
+    $sql = "INSERT INTO user_reward ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+
+  public function getUserRewardActiveList($userId, $rewardStatus, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_id = :userId AND status <>:rewardStatus";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'rewardStatus' => $rewardStatus));
+    return $result;
+  }
+
+  public function getUserRewardsActiveList($userId, $rewardStatus, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_id = :userId  AND cube_id IN (1,2,3,5) AND status <>:rewardStatus";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'rewardStatus' => $rewardStatus));
+    return $result;
+  }
+  public function getUserRewardActiveListForCube($userId, $cubeId, $rewardStatus, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_id = :userId  AND cube_id = :cubeId AND status <>:rewardStatus";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'rewardStatus' => $rewardStatus, 'cubeId' => $cubeId));
+    return $result;
+  }
+
+  public function getUserRewardDetail($userRewardId, $options = array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_reward_id = :userRewardId";
+
+    $result = database::doSelectOne($sql, array('userRewardId' => $userRewardId));
+    return $result;
+  }
+
+  public function updateUserReward($userRewardId, $options=array())
+  {
+    $sql = "UPDATE user_reward SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_reward_id =:userRewardId";
+    $options['userRewardId'] = $userRewardId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
+
+  public function getProcessingUserReward($options = array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE status = :rewardStatus";
+
+    $result = database::doSelect($sql, array('rewardStatus' => CUBE_ON_PROCESS ));
+    return $result;
+  }
+
+  public function  checkForUserLevelUp($userId)
+  {
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $cardLib = autoload::loadLibrary('queryLib', 'card');
+    $isLevelIncreased = false;
+
+    $user = $userLib->getUserDetail($userId);
+    $previousLevelUpXp = $cardLib->getMasterLevelUpXpForUserLevel($user['level_id']);
+    if($user['xp'] >= $previousLevelUpXp['xp_to_next_level'])
+    {
+    //  $levelUpXp = $cardLib->getMasterLevelUpXpForUser($userId, $user['level_id']+1);
+      $levelUpXp = $cardLib->getMasterLevelUpXpForUserLevel($user['level_id']+1);
+
+      if(!empty($levelUpXp))
+      {
+        $userLib->updateUser($userId, array('level_id' => $levelUpXp['level_id'],
+                                            // 'xp' => $levelUpXp['xp'] - $levelUpXp['xp_to_next_level'],
+                                             'god_tower_health' => $levelUpXp['god_tower_health'],
+                                             'stadium_tower_damage' => $levelUpXp['stadium_tower_damage'],
+                                             'god_tower_damage' => $levelUpXp['god_tower_damage'],
+                                             'stadium_tower_health' => $levelUpXp['stadium_tower_health']));
+
+        $isLevelIncreased = true;
+      }
+   }
+
+    return $isLevelIncreased;
+  }
+
+  public function  getUserRewardForCanClaimStatusBasedOnCube($userId, $cubeId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_id = :userId AND cube_id = :cubeId AND status = :rewardStatus
+            ORDER BY created_at DESC ";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'rewardStatus' => CUBE_CAN_BE_CLAIMED , 'cubeId' => $cubeId ));
+    return $result;
+  }
+
+  public function getInactiveUserList($inActiveTime, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE notification_status = ".CONTENT_ACTIVE." AND last_access_time < '".(time()-$inActiveTime)."'
+            ORDER BY RAND()";
+
+    $result = database::doSelect($sql);
+    return $result;
+  }
+
+  public function  getUserRewardCount($userId, $cubeId, $createdAt, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_reward
+            WHERE user_id = :userId AND cube_id = :cubeId AND status = :rewardStatus
+            AND created_at = :createdAt  ORDER BY created_at DESC";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'rewardStatus' => CONTENT_CLOSED, 'cubeId' => $cubeId, 'createdAt' => $createdAt));
+    return $result;
+  }
+
+  public function insertUserDailyAdReward($options=array())
+  {
+    $sql = "INSERT INTO user_daily_ad_reward ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+
+  public function getUserDailyAdReward($userId, $today, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_daily_ad_reward
+            WHERE user_id =:userId AND created_at = :createdAt";
+
+    $result = database::doSelect($sql, array('userId' => $userId, 'createdAt' => $today));
+    return $result;
+  }
+
+}
