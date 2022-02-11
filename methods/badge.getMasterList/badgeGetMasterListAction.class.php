@@ -32,6 +32,7 @@ class badgeGetMasterListAction extends baseAction{
   {
     $badgeLib = autoload::loadLibrary('queryLib', 'badge');
     $userLib = autoload::loadLibrary('queryLib', 'user');
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
     $result = $seasonLeagueResult = $seasonDetailResult = array();
     date_default_timezone_set("Asia/Kolkata");
     $masterbadgeList = $badgeLib->getMasterbadgeList();
@@ -50,22 +51,83 @@ class badgeGetMasterListAction extends baseAction{
       ));
       }
     }*/
-    $userDetail = $userLib->getUserDetail($this->userId);
-    $resetData = $badgeLib->getUserRelicsDiff($userDetail['relics']);
-
-    $check_reset=0;
-    $oldtrophies_count=$userDetail['relics'];
-    foreach($seasonLeagueList as $sll)
+    
+    
+    foreach($seasonLeagueList as $ulsll)
     {
-      if(empty($userDetail['season_id']) || $userDetail['season_id']==0){
-        $userLib->updateUser($this->userId, array('season_id' => $sll['season_id']));
-      }elseif(!empty($userDetail['season_id']) && $userDetail['season_id']!=$sll['season_id']){
-        if(!empty($resetData)){
-          $userLib->updateUser($this->userId, array('relics' => $resetData['reset_value'], 'season_id'=>$sll['season_id']));
-          $check_reset=1;
+      $userDetail = $userLib->getUserDetail($this->userId);
+    if(empty($userDetail['season_id'])){ //!empty($userDetail['old_relics']) && $userDetail['old_relics']==0 && 
+        $userLib->updateUser($this->userId, array('season_id' => $ulsll['season_id']));
+      }
+      $userList = $userLib->getUserList();
+      foreach($userList as $ul){
+      $ulResetData = $badgeLib->getUserRelicsDiff($ul['relics']);
+      $ulOldtrophies=$ul['relics'];
+        if($ul['season_id']!=$ulsll['season_id']){  //!empty($ul['season_id']) &&  && $ul['old_relics']<=0 
+          if(!empty($ulResetData)){
+            /* Reset with Percentage Logic*/
+            $minimumBadgeValue = $badgeLib->getMasterBadgeMinimumList();
+            $userDetail = $userLib->getUserDetail($ul['user_id']);
+            $userRelicsValue= $userDetail['relics'];
+            $resetRelicsValue =$ulResetData['reset_value'];
+            $getRemainCups = $userDetail['relics']-$minimumBadgeValue['min_relic_count'];
+            $resetPerc = $ulResetData['reset_percentage']/100;
+            $getPercDeductVal = $getRemainCups-($getRemainCups*$resetPerc);
+            $getResetVal= $getPercDeductVal+$minimumBadgeValue['min_relic_count'];
+            /* Reset with Percentage Logic*/
+            if($ul['season_id']!=$ulsll['season_id'] && $ul['relics']>$minimumBadgeValue['min_relic_count']){  //!empty($ul['season_id']) && 
+              $userLib->updateUser($ul['user_id'], array('relics' => floor($getResetVal), 'old_relics'=>$ulOldtrophies, 'season_id'=>$ulsll['season_id']));
+            }
+            
+          }
         }
       }
     }
+
+    
+    $userDetail = $userLib->getUserDetail($this->userId);
+    $resetData = $badgeLib->getUserRelicsDiff($userDetail['relics']);
+
+    /* Reset with Percentage Logic*/
+    $minimumBadgeValue1 = $badgeLib->getMasterBadgeMinimumList();
+    $ulResetData = $badgeLib->getUserRelicsDiff($userDetail['relics']);
+    if($minimumBadgeValue1['min_relic_count']<=$userDetail['relics']){
+      $userRelicsValue1= $userDetail['relics'];
+      $resetRelicsValue1 =$ulResetData['reset_value'];
+      $getRemainCups1 = $userRelicsValue1-$minimumBadgeValue1['min_relic_count'];
+      $resetPerc1 = $ulResetData['reset_percentage']/100;
+      $getPercDeductVal1 = $getRemainCups1-($getRemainCups1*$resetPerc1);
+      $getResetValFuture= $getPercDeductVal1+$minimumBadgeValue1['min_relic_count'];
+      /* Reset with Percentage Logic*/
+    }
+
+    $check_reset=0; 
+    $oldtrophies_count=$userDetail['old_relics'];
+    if($userDetail['old_relics']>0){
+      $check_reset=1;
+      $userLib->updateUser($this->userId, array('old_relics'=>0));
+    } 
+
+    if(empty($userDetail['season_id']) || $userDetail['season_id']==0){ //!empty($userDetail['old_relics']) && $userDetail['old_relics']==0 && 
+      $userLib->updateUser($this->userId, array('season_id' => $sll['season_id']));
+    }
+    /*foreach($seasonLeagueList as $sll)
+    {
+      if(!empty($resetData)){
+        if(empty($userDetail['season_id']) || $userDetail['season_id']==0){ //!empty($userDetail['old_relics']) && $userDetail['old_relics']==0 && 
+          $userLib->updateUser($this->userId, array('old_relics'=>0,'season_id' => $sll['season_id']));
+          $check_reset=1;
+          if($userDetail['old_relics']>0){
+            $userLib->updateUser($this->userId, array('old_relics'=>0));
+          }
+        }elseif(!empty($userDetail['season_id']) && $userDetail['season_id']!=$sll['season_id'] ){  //&& $userDetail['old_relics']>0 //|| $userDetail['season_id']!=$sll['season_id']
+         // if(!empty($resetData)){
+            $userLib->updateUser($this->userId, array('old_relics'=>0,'season_id'=>$sll['season_id'])); //'relics' => $resetData['reset_value'], 
+            $check_reset=1;
+         // }
+        }
+      }
+    }*/
     if(!empty($resetData)){
       $temp3 = array();
       $temp3['league_id'] = $resetData['master_badge_id'];
@@ -107,6 +169,9 @@ class badgeGetMasterListAction extends baseAction{
       //$temp2['is_achieved'] = empty($userBadge)?"False":"True";
       $temp2['resettrophies_count'] = $userDetail['relics'];
       $temp2['oldtrophies_count'] = $oldtrophies_count;
+      $actualdeduct = $oldtrophies_count-$userDetail['relics'];
+      $temp2['deductedtrophies_count'] = ($actualdeduct<=0)?0:$actualdeduct;
+      $temp2['nextreset_trophy_count'] =!empty($getResetValFuture)?floor($getResetValFuture):0;
       $temp2['is_reset'] = $check_reset;
       $seconds = strtotime($temp2['expire_days']) - time();
       if($check_reset==1){ 

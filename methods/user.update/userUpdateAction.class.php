@@ -95,7 +95,7 @@ class userUpdateAction extends baseAction{
     if($this->tutorial_seq != "")
     {
       $paramList['tutorial_seq'] = $this->tutorial_seq+1;
-      if($this->tutorial_seq==2){
+      if($this->tutorial_seq==3){
         $paramList['is_tutorial_completed'] =1;
         $result['is_tutorial_completed'] = $paramList['is_tutorial_completed'];
       }else{
@@ -117,10 +117,6 @@ class userUpdateAction extends baseAction{
     {
       $paramList['ios_push_token'] = $this->iosPushToken;
     }
-    if($this->editName_count != "")
-    {
-      $paramList['editname_count'] = $this->editName_count;
-    }
     if($this->kingQueen_status != "")
     {
       $paramList['kingQueen_status'] = $this->kingQueen_status;
@@ -140,6 +136,64 @@ class userUpdateAction extends baseAction{
     if($this->isStorybookTutorial != "" && $this->isStorybookTutorial==1)
     {
       $paramList['is_storybook_tutorial_completed'] = $this->isStorybookTutorial;
+    }
+    if($this->editNameCost != "")
+    {
+      $dt=date('Y-m-d H:i:s');
+      $enc = $userLib->getEditNameClaimed($this->userId,$dt);
+      date_default_timezone_set('Asia/Kolkata');
+      if(!empty($enc)){
+        $dt=date('Y-m-d H:i:s');
+        $nextdt=date('Y-m-d H:i:s',strtotime('+1 day', strtotime($enc['time'])));
+        $seconds = strtotime($nextdt) - strtotime($dt);
+        $hours = floor($seconds / 3600);
+        $seconds %= 3600;
+        $minutes = floor($seconds / 60);
+        $seconds %= 60;
+        $result['msg_show'] = "You have successfully unlocked name change for once. You need to wait another ";
+        if($hours!=0){
+          if($hours<=1){
+            $result['msg_show'] .= "$hours hr ";
+          }else{
+            $result['msg_show'] .= "$hours hrs ";
+          }
+        }else{
+            if($minutes!=0){
+              $result['msg_show'] .= " $minutes min ";
+            }else{
+              if($seconds!=0){
+                $result['msg_show'] .= "$seconds sec ";
+              }
+            } 
+        }    
+        $result['msg_show'].='to change your name again!';
+        $result['isreadytochange']=0;
+        $result['nextdt']= $nextdt;
+        $result['dt']= $dt;
+        $secondss = strtotime($nextdt) - strtotime($dt);
+        $result['secondss']= $secondss;
+        //$result['msg_show']='You have successfully unlocked name change for once. You need to wait another '.$dt.'h to change your name again!';
+      }else{
+        $editNameId = $userLib->insertEditName(array(
+          'name' => $this->name,
+          'time' => date('Y-m-d H:i:s'),
+          'user_id' => $this->userId,
+          'status' => CONTENT_ACTIVE));
+        $paramList['crystal'] =$userDetail['crystal']-$this->editNameCost;
+        $userDetail = $userLib->getUserDetail($this->userId);
+        $result['isreadytochange']=1;
+        $result['total_crystal']=$paramList['crystal'];
+        $result['msg_show']='You have successfully unlocked name change for once. You need to wait another 24h to change your name again!';
+        if($this->editName_count != "")
+        {
+          $paramList['editname_count'] = $this->editName_count;
+        }
+      }
+    }else{
+      if($this->editName_count != "")
+        {
+          $paramList['editname_count'] = $this->editName_count;
+        }
     }
     if(!empty($paramList)){
       $userLib->updateUser($this->userId, $paramList);

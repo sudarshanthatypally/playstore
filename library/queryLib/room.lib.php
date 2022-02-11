@@ -81,11 +81,13 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
     $sql =  "SELECT waiting_room.waiting_room_id, user.relics, user.level_id, waiting_room.status 
             FROM waiting_room
             INNER JOIN user ON user.user_id = waiting_room.user_id
-            WHERE  waiting_room.status = :pending AND user.master_stadium_id = :masterStadiumId AND waiting_room.user_id <> :userId AND (user.level_id=:levelId OR user.level_id=:levelIdAdd OR user.level_id=:levelIdSub)
-            AND waiting_room.waiting_room_id <> :waitingRoomId
+            WHERE waiting_room.status = :pending AND user.master_stadium_id = :masterStadiumId AND waiting_room.user_id <> :userId AND waiting_room.waiting_room_id <> :waitingRoomId
             AND entry_time > :minWaitingTime
             ORDER BY  user.relics - :relics";
-
+//AND (user.level_id=:levelId OR user.level_id=:levelIdAdd OR user.level_id=:levelIdSub)
+//'levelId' => $levelId,
+ //                                               'levelIdAdd' => $levelIdAdd,
+   //                                             'levelIdSub'=>$levelIdSub, 
     $minWaitingTime = time() - ROOM_SEARCH_TIMEOUT_TIME;
     $levelIdAdd= $levelId+1;
     $levelIdSub= $levelId-1;
@@ -93,9 +95,6 @@ public function getMatchingPlayer($waitingRoomId, $userId,  $levelId, $relics, $
                                                 'userId' => $userId, 
                                                 'minWaitingTime' => $minWaitingTime, 
                                                 'relics' => $relics, 
-                                                'levelId' => $levelId,
-                                                'levelIdAdd' => $levelIdAdd,
-                                                'levelIdSub'=>$levelIdSub, 
                                                 'pending' => CONTENT_PENDING, 
                                                 'masterStadiumId' => $masterStadiumId));
     return $result;

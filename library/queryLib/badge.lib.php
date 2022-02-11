@@ -19,6 +19,14 @@ class badge{
     $result = database::doSelect($sql);
     return $result;
   }
+  public function getMasterBadgeMinimumList($options=array())
+  {
+    $sql = "SELECT *
+            FROM master_badge";
+
+    $result = database::doSelectOne($sql);
+    return $result;
+  }
 
   public function getMasterBadgeDetail($masterBadgeId, $options=array())
   {

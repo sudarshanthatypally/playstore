@@ -61,6 +61,33 @@ class inAppPurchaseUpdateAction extends baseAction{
     
     print_log($this->crystal);
     print_log($this->data);
+	  
+	  $dataVal= array('user_id' => $this->userId,
+                              'crystal' => $this->crystal,
+                              'data' => $this->data,
+                              'created_at' =>  date('Y-m-d H:i:s'),
+                              'status' => CONTENT_ACTIVE);
+    $inAppPurchaseLib->insertInAppPurchaseInventory(array('user_id' => $this->userId,
+                                                              'data' => json_encode($dataVal),
+                                                              'created_at' =>  date('Y-m-d H:i:s')));
+/*
+$post = ['applicationKey'=>"12345", 'api_name'=>""inAppPurchaseUpdateApi"",'error_level'=>"i", 'log_message'=>json_encode($dataVal),'methodName'=>"logs.save"];
+  $ch = curl_init();
+  $headers = array(
+    'Accept: application/json',
+    'Content-Type: application/json',
+
+    );
+  curl_setopt($ch, CURLOPT_URL,'http://35.176.252.22/EPIKO/staging/rest.php');
+  curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch, CURLOPT_HEADER, 0);
+  curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+  $response = curl_exec($ch);
+  //$result = json_decode($response);
+  curl_close($ch); // Close the connection
+	  */
     $result['total_crystal'] = $user['crystal'];
     $result['crystal_bonus'] = $this->crystal;
     print_log("------------------------------------------------------------------------------------------------------------------");

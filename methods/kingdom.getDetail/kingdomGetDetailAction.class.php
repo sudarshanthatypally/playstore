@@ -6,7 +6,7 @@
  */
 class kingdomGetDetailAction extends baseAction{
 	/**
-   * @OA\Get(path="?methodName=kingdom.getDetails", tags={"Kingdom"}, 
+   * @OA\Get(path="?methodName=kingdom.getDetail", tags={"Kingdom"}, 
    * @OA\Parameter(parameter="applicationKey", name="applicationKey", description="The applicationKey specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Parameter(parameter="user_id", name="user_id", description="The user ID specific to this event",
@@ -98,7 +98,7 @@ class kingdomGetDetailAction extends baseAction{
     $result['kingdom_id'] = $this->kingdomId;
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
-    $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
+    $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
     $result['trophies']=$kd['total'];

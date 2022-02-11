@@ -15,7 +15,15 @@ class quest{
   {
     $sql = "SELECT *
             FROM master_quest
-            WHERE status=1";
+            WHERE status=1
+            ORDER BY (case when frequency = '2' then 1
+               when frequency = '3' then 2
+                      when frequency = '4' then 3
+                      when frequency = '1' then 4
+                      when frequency = '0' then 5
+               else 3
+          end),
+         frequency";
 
     $result = database::doSelect($sql);
     return $result;
@@ -76,27 +84,244 @@ class quest{
     $result = database::doInsert($sql, $options);
     return $result;
   }
-
-  public function updateMasterCard($masterCardId, $options=array())
+  public function insertMasterQuestClaimed($options=array())
   {
-    $sql = "UPDATE master_card SET ";
+    $sql = "INSERT INTO quest_claim ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+  public function updateQuestInventory($questId, $userId, $options=array())
+  {
+    $sql = "UPDATE quest_inventory SET ";
     foreach($options as $key=>$value){
       $sql .= $key."= :".$key.", ";
     }
     $sql = rtrim($sql, ", ");
-    $sql .= " WHERE master_card_id =:masterCardId";
-    $options['masterCardId'] = $masterCardId;
+    $sql .= " WHERE quest_id =:questId AND user_id =:userId";
+    $options['questId'] = $questId;
+    $options['userId'] = $userId;
 
     $result = database::doUpdate($sql, $options);
     return $result;
   }
-  public function getCardDetails($masterStadiumId, $cardType, $cardRarityType){
+  public function getQuestDetails($questId){
     $sql = "SELECT * 
-            FROM master_card 
-            WHERE master_stadium_id<=:masterStadiumId 
-              AND card_type=:cardType 
-              AND card_rarity_type=:cardRarityType";
-    $result = database::doSelect($sql, array('masterStadiumId'=>$masterStadiumId, 'cardType'=>$cardType, 'cardRarityType'=>$cardRarityType));
+            FROM master_quest 
+            WHERE master_quest_id=:questId";
+    $result = database::doSelectOne($sql, array('questId'=>$questId));
+    return $result;
+  }
+  public function getBattleQuestDetails($questId, $userId){
+    $sql = "SELECT * 
+            FROM master_quest 
+            WHERE master_quest_id<=:questId";
+            //AND user_id=:userId  'userId'=>$userId,
+    $result = database::doSelectOne($sql, array('questId'=>$questId));
+    return $result;
+  }
+  public function getBattleQuestData($questId, $userId){
+    $sql = "SELECT *     
+            FROM quest_inventory qi
+            WHERE qi.quest_id=:questId AND qi.user_id=:userId ";
+    $result = database::doSelectOne($sql, array('questId'=>$questId, 'userId'=>$userId));
+    return $result;
+  }
+  public function getQuestCollectFreeReward($userId, $andVerId, $iosVerId){
+    date_default_timezone_set('Asia/Kolkata');
+    
+    if(!empty($andVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId 
+        AND qi.time >= CURDATE() AND qi.time < CURDATE() + INTERVAL 1 DAY
+        AND INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') 
+        ORDER BY qi.quest_inventory_id DESC"; //> NOW() - INTERVAL 1 DAY
+    }elseif(!empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId
+        AND qi.time >= CURDATE() AND qi.time < CURDATE() + INTERVAL 1 DAY
+        AND INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."') 
+      ORDER BY qi.quest_inventory_id DESC";
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId
+        AND qi.time >= CURDATE() AND qi.time < CURDATE() + INTERVAL 1 DAY
+      ORDER BY qi.quest_inventory_id DESC";
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  /*public function getQuestPatBattle100Reward($userId, $andVerId, $iosVerId){
+    if(!empty($andVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=2 
+        AND qi.time > NOW() - INTERVAL 7 DAY 
+        AND INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') 
+        ORDER BY qi.quest_inventory_id DESC";
+    }elseif(!empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=2 
+        AND qi.time > NOW() - INTERVAL 7 DAY 
+        AND INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."') 
+      ORDER BY qi.quest_inventory_id DESC";
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=2
+        AND qi.time > NOW() - INTERVAL 7 DAY
+      ORDER BY qi.quest_inventory_id DESC";
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }*/
+  public function getQuestPatBattle100Reward($userId, $andVerId, $iosVerId){
+    if(!empty($andVerId) || !empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=2
+      AND qi.time BETWEEN (DATE_ADD(CURDATE(), INTERVAL - WEEKDAY(CURDATE()) DAY)) AND (DATE(ADDDATE(NOW(), 2 - DAYOFWEEK(NOW())+ CASE WHEN DAYOFWEEK(NOW()) < 2 THEN 0 ELSE 7 END )))
+        AND (INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') OR INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."'))
+        ORDER BY qi.quest_inventory_id DESC";//        AND qi.time > NOW() - INTERVAL 7 DAY 
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=2
+      AND qi.time BETWEEN (DATE_ADD(CURDATE(), INTERVAL - WEEKDAY(CURDATE()) DAY)) AND (DATE(ADDDATE(NOW(), 2 - DAYOFWEEK(NOW())+ CASE WHEN DAYOFWEEK(NOW()) < 2 THEN 0 ELSE 7 END )))
+      ORDER BY qi.quest_inventory_id DESC"; //        AND qi.time > NOW() - INTERVAL 7 DAY
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestPlayBattle200Reward($userId, $andVerId, $iosVerId){
+    if(!empty($andVerId) || !empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=10
+        AND (INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') OR INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."'))
+        ORDER BY qi.quest_inventory_id DESC";//        AND qi.time > NOW() - INTERVAL 7 DAY 
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=10
+      ORDER BY qi.quest_inventory_id DESC"; //        AND qi.time > NOW() - INTERVAL 7 DAY
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestPlayBattle500Reward($userId, $andVerId, $iosVerId){
+    if(!empty($andVerId) || !empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=11
+        AND (INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') OR INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."'))
+        ORDER BY qi.quest_inventory_id DESC";//AND qi.time > NOW() - INTERVAL 7 DAY 
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=11
+      ORDER BY qi.quest_inventory_id DESC"; // AND qi.time > NOW() - INTERVAL 7 DAY
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestKathikaReward($userId, $andVerId, $iosVerId){
+    if(!empty($andVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=3
+        AND INET_ATON(mq.android_version_id)<=INET_ATON('".$andVerId."') 
+        ORDER BY qi.quest_inventory_id DESC";//AND qi.time > NOW() - INTERVAL 1 MONTH
+    }elseif(!empty($iosVerId)){
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=3
+        AND INET_ATON(mq.ios_version_id)<=INET_ATON('".$iosVerId."') 
+      ORDER BY qi.quest_inventory_id DESC"; //AND qi.time > NOW() - INTERVAL 1 MONTH
+    }else{
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=3
+      ORDER BY qi.quest_inventory_id DESC"; //AND qi.time > NOW() - INTERVAL 1 MONTH
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestCollectFreeRewardClaimed($userId){
+      $sql = "SELECT * 
+      FROM quest_claim qc
+      WHERE user_id=:userId AND quest_id=1
+        AND qc.created_at >= CURDATE() AND qc.created_at < CURDATE() + INTERVAL 1 DAY
+      ORDER BY qc.quest_claim_id DESC"; //> NOW() - INTERVAL 1 DAY
+    
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestKathikaRewardInKathika($userId){ 
+    $sql = "SELECT * 
+    FROM kathika_property
+    WHERE user_id=:userId 
+    ORDER BY kathika_prop_id DESC";//AND created_at > NOW() - INTERVAL 1 MONTH
+    
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  } 
+  public function getPlayBattle100QuestClaimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=2
+    AND qc.created_at BETWEEN (DATE_ADD(CURDATE(), INTERVAL - WEEKDAY(CURDATE()) DAY)) AND (DATE(ADDDATE(NOW(), 2 - DAYOFWEEK(NOW())+ CASE WHEN DAYOFWEEK(NOW()) < 2 THEN 0 ELSE 7 END )))
+    ORDER BY qc.quest_claim_id DESC";
+  
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId //AND qc.created_at > NOW() - INTERVAL 1 DAY
+    return $result;
+  }
+  public function getPlayBattle200QuestClaimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=10
+    ORDER BY qc.quest_claim_id DESC"; //      AND qc.created_at > NOW() - INTERVAL 7 DAY
+
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getPlayBattle500QuestClaimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=11
+    ORDER BY qc.quest_claim_id DESC"; //      AND qc.created_at > NOW() - INTERVAL 7 DAY
+  
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getKathikaQuestClaimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=3
+    ORDER BY qc.quest_claim_id DESC";//AND qc.created_at > NOW() - INTERVAL 1 MONTH
+  
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
     return $result;
   }
 }

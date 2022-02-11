@@ -47,9 +47,13 @@ class kingdomRequestAction extends baseAction
     //$kingdom_cnt = $kingdomLib->checkKingdomAlreadyExisted($this->kingdomName);
     $kingdomDetails = $kingdomLib->getKingdomDetails($this->kingdomId);
     $userReqCnt = $kingdomLib->getKingdomUsersRequestedCount($this->userId);
-    if($userReqCnt <5){
-      if ($user_cnt == 0) {
-      if ($kingdomDetails['kingdom_req_cup_amt'] <= $user['relics']) {
+    $kingdomUserCntWithoutReq= $kingdomLib->getKingdomUsersCountwithoutRequested($this->kingdomId);
+    //if($userReqCnt <5){
+      
+  if($kingdomUserCntWithoutReq<$kingdomDetails['kingdom_limit']){
+    if ($user_cnt == 0) {
+      print_log("kingdom_cups::".$kingdomDetails['kingdom_req_cup_amt']);
+      if ($user['relics']>=$kingdomDetails['kingdom_req_cup_amt'] || $kingdomDetails['kingdom_req_cup_amt']==0) {
         /*if($user['gold'] >= KINGDOM_GOLD_REQUIRED)
         {*/
         if (!empty($this->kingdomId)) {
@@ -115,16 +119,17 @@ class kingdomRequestAction extends baseAction
     print_log("limit exceeded");
     $kingdomStatus = 6;
   }
-
+  $kingdomUserCntWithoutReq= $kingdomLib->getKingdomUsersCountwithoutRequested($this->kingdomId);
     $result['kingdom_id'] = $this->kingdomId;
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
-    $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
+    $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];
     $result['kingdom_req_cup_amt'] = $kingdomDetails['kingdom_req_cup_amt'];
     $result['kingdom_success'] = $kingdomStatus;
+    $result['kingdom_users_count'] =$kingdomUserCntWithoutReq;
     $result['kingdom_user_desc'] = "User Type Code = 0 : Requested, 1 : Member, 2 : Admin, 3 : Co-Leader";
     //$userList[]=$userDetails;
     $result['kingdom_userlist'] = $userList;

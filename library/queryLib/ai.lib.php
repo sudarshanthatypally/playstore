@@ -474,10 +474,10 @@ class ai{
     $sql="
         WITH init AS (SELECT mcrd.card_type, mcrd.master_stadium_id, mcrd.master_card_id
           FROM master_card mcrd 
-          WHERE mcrd.master_stadium_id<=:masterStadiumId AND mcrd.master_card_id NOT IN(SELECT master_card_id FROM master_deck_card mdc WHERE mdc.deck_id=:deckId ORDER BY RAND())),
+          WHERE mcrd.master_stadium_id<=:masterStadiumId AND mcrd.is_available=1 AND mcrd.master_card_id NOT IN(SELECT master_card_id FROM master_deck_card mdc WHERE mdc.deck_id=:deckId ORDER BY RAND())),
           init2 AS (SELECT mcrd.card_type, mcrd.master_stadium_id, mcrd.master_card_id
           FROM master_card mcrd 
-          WHERE mcrd.master_stadium_id<=:masterStadiumId AND mcrd.master_card_id IN(SELECT master_card_id FROM master_deck_card mdc WHERE mdc.deck_id=:deckId))
+          WHERE mcrd.master_stadium_id<=:masterStadiumId AND mcrd.is_available=1 AND mcrd.master_card_id IN(SELECT master_card_id FROM master_deck_card mdc WHERE mdc.deck_id=:deckId))
           SELECT RANK() OVER(PARTITION BY card_type ORDER BY master_card_id) rank_c ,card_type,master_stadium_id,master_card_id FROM init2 
           UNION
           SELECT RANK() OVER(PARTITION BY card_type ORDER BY master_card_id) rank_c ,card_type,master_stadium_id,master_card_id FROM init

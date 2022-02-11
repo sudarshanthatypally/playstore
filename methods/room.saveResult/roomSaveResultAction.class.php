@@ -612,16 +612,95 @@ class roomSaveResultAction extends baseAction{
     //fprovide the badge based on relics count to user
     $isBadgeGiven =  $badgeLib->checkUserBadge($this->userId);
     $latestBadge = $badgeLib->getUserLatestBadge($this->userId);
+    
+    $questData= $questLib->getBattleQuestData(2,$this->userId);
+    if(empty($questData)){
+      $questLib->insertMasterQuestInventory(array(
+        'quest_id' => 2,
+        'time' => date('Y-m-d H:i:s'),
+        'user_id' => $this->userId,
+        'status' => CONTENT_ACTIVE,
+        'win_status' => $this->winStatus,
+        'room_id' => $this->roomId,
+        'win_count' => ($this->winStatus == BATTLE_WON_STATUS)?1:0,
+        'match_count'=>1,
+        'created_at' => date('Y-m-d H:i:s')));
+    }else{
+      if($this->winStatus == BATTLE_WON_STATUS){
+        $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('win_count'=> $questData['win_count']+1, 'match_count' => $questData['match_count']+1));
+      }else{
+        $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('match_count' => $questData['match_count']+1));
+      } 
+    }
+    $qv100 = $questLib->getQuestPatBattle100Reward($this->userId, $this->androidVerId, $this->iosVerId);
+    $qv200 = $questLib->getQuestPlayBattle200Reward($this->userId, $this->androidVerId, $this->iosVerId);
+    $qv500 = $questLib->getQuestPlayBattle500Reward($this->userId, $this->androidVerId, $this->iosVerId);
+    if($qv100['match_count']>=$qv100['slide_maxvalue'] || !empty($qv200['match_count'])){
+      $questData= $questLib->getBattleQuestData(10,$this->userId);
+      if(empty($questData)){
+        $questLib->insertMasterQuestInventory(array(
+          'quest_id' => 10,
+          'time' => date('Y-m-d H:i:s'),
+          'user_id' => $this->userId,
+          'status' => CONTENT_ACTIVE,
+          'win_status' => $this->winStatus,
+          'room_id' => $this->roomId,
+          'win_count' => ($this->winStatus == BATTLE_WON_STATUS)?1:0,
+          'match_count'=>1,
+          'created_at' => date('Y-m-d H:i:s')));
+      }else{
+        if($this->winStatus == BATTLE_WON_STATUS){
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('win_count'=> $questData['win_count']+1, 'match_count' => $questData['match_count']+1));
+        }else{
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('match_count' => $questData['match_count']+1));
+        } 
+      }
+    }
+    if($qv200['match_count']>=$qv200['slide_maxvalue'] || !empty($qv500['match_count'])){
+      $questData= $questLib->getBattleQuestData(11,$this->userId);
+      if(empty($questData)){
+        $questLib->insertMasterQuestInventory(array(
+          'quest_id' => 11,
+          'time' => date('Y-m-d H:i:s'),
+          'user_id' => $this->userId,
+          'status' => CONTENT_ACTIVE,
+          'win_status' => $this->winStatus,
+          'room_id' => $this->roomId,
+          'win_count' => ($this->winStatus == BATTLE_WON_STATUS)?1:0,
+          'match_count'=>1,
+          'created_at' => date('Y-m-d H:i:s')));
+      }else{
+        if($this->winStatus == BATTLE_WON_STATUS){
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('win_count'=> $questData['win_count']+1, 'match_count' => $questData['match_count']+1));
+        }else{
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('match_count' => $questData['match_count']+1));
+        } 
+      }
+    }
 
-    $questLib->insertMasterQuestInventory(array(
-      'quest_id' => 2,
-      'time' => date('Y-m-d H:i:s'),
-      'user_id' => $this->userId,
-      'status' => CONTENT_ACTIVE,
-      'win_status' => $this->winStatus,
-      'room_id' => $this->roomId,
-      'created_at' => date('Y-m-d H:i:s')));
-
+    /*$quest_klist = [2,10,11];  // quest_id's list 
+    foreach ($quest_klist as $quest_kval)
+    {
+      $questData= $questLib->getBattleQuestData($quest_kval,$this->userId);
+      if(empty($questData)){
+        $questLib->insertMasterQuestInventory(array(
+          'quest_id' => $quest_kval,
+          'time' => date('Y-m-d H:i:s'),
+          'user_id' => $this->userId,
+          'status' => CONTENT_ACTIVE,
+          'win_status' => $this->winStatus,
+          'room_id' => $this->roomId,
+          'win_count' => ($this->winStatus == BATTLE_WON_STATUS)?1:0,
+          'match_count'=>1,
+          'created_at' => date('Y-m-d H:i:s')));
+      }else{
+        if($this->winStatus == BATTLE_WON_STATUS){
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('win_count'=> $questData['win_count']+1, 'match_count' => $questData['match_count']+1));
+        }else{
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('match_count' => $questData['match_count']+1));
+        } 
+      }
+    }*/
     $win_rate = (((empty($userParamList['total_wins'])?$user['total_wins']:$userParamList['total_wins'])/(empty($userParamList['total_match'])?$user['total_match']:$userParamList['total_match']))*100);
     
 

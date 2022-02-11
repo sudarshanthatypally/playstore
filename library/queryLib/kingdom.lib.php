@@ -25,7 +25,7 @@ class kingdom{
     /*$sql = "SELECT k.*, ku.user_trophies, ROW_NUMBER() OVER (ORDER BY ku.user_trophies DESC) AS srno
             FROM kingdom k
             LEFT JOIN kingdom_users ku ON ku.kingdom_id=k.kingdom_id";*/
-    $sql = "SELECT k.*, SUM(u.relics) AS user_trophy, ROW_NUMBER() OVER (ORDER BY SUM(u.relics) DESC) AS srno
+    $sql = "SELECT k.*, AVG(u.relics) AS user_trophy, ROW_NUMBER() OVER (ORDER BY AVG(u.relics) DESC) AS srno
             FROM kingdom k
             LEFT JOIN user u ON u.kingdom_id=k.kingdom_id
             GROUP BY k.kingdom_id";
@@ -57,6 +57,7 @@ class kingdom{
             FROM kingdom_messages
             WHERE kingdom_id = :kingdomId";*/
       $sql = "SELECT *
+      FROM (SELECT *
             FROM kingdom_messages
             WHERE kingdom_id = :kingdomId
             HAVING room_id IS NULL
@@ -66,22 +67,27 @@ class kingdom{
               WHERE kingdom_id = :kingdomId
               GROUP BY room_id
               HAVING room_id IS NOT NULL
-              ORDER BY km_id ASC";
+              ORDER BY km_id DESC
+              LIMIT 100) lst
+                  ORDER BY km_id ASC";
     }else{ 
      /* $sql = "SELECT *
             FROM kingdom_messages
             WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId";*/
       $sql = "SELECT *
-              FROM kingdom_messages
-              WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId
-              HAVING room_id IS NULL
-              UNION
-                SELECT *
+              FROM (SELECT *
                 FROM kingdom_messages
                 WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId
-                GROUP BY room_id
-                HAVING room_id IS NOT NULL
-                ORDER BY km_id ASC";
+                HAVING room_id IS NULL
+                UNION
+                  SELECT *
+                  FROM kingdom_messages
+                  WHERE kingdom_id = :kingdomId AND km_id > $lastMsgId
+                  GROUP BY room_id
+                  HAVING room_id IS NOT NULL
+                  ORDER BY km_id DESC
+                  LIMIT 100) lst
+                  ORDER BY km_id ASC";
             //battle_state!=4 AND 
     }
     //UNION ALL (SELECT * FROM kingdom_messages WHERE is_update=1 ORDER BY updated_at DESC LIMIT 1)
@@ -316,7 +322,7 @@ class kingdom{
   public function getKingdomUserDetailsOnRelicsCount($kingdomId, $options=array()){
     $sql = "SELECT COUNT(*) as cnt
             FROM kingdom_users  
-            WHERE user_type!=0 AND kingdom_id IN (:kingdomId)";
+            WHERE user_type!=0 AND user_type!=9 AND kingdom_id IN (:kingdomId)";
  
     //$result = database::doSelect($sql);
     $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
@@ -432,7 +438,7 @@ class kingdom{
     $sql = "SELECT SUM(u.relics) AS total, SUM(ku.donation) AS total_donation
             FROM kingdom_users AS ku
             LEFT JOIN user AS u ON u.user_id=ku.user_id
-            WHERE ku.user_type!=0 AND ku.kingdom_id=:kingdomId";
+            WHERE ku.user_type!=0 AND user_type!=9 AND ku.kingdom_id=:kingdomId";
     $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
     return $result;
   }
@@ -440,6 +446,14 @@ class kingdom{
     $sql = "SELECT COUNT(*) AS cnt
             FROM kingdom_users
             WHERE kingdom_id=:kingdomId";
+
+    $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
+    return $result['cnt'];
+  }
+  public function getKingdomUsersCountwithoutRequested($kingdomId, $options=array()){
+    $sql = "SELECT COUNT(*) AS cnt
+            FROM kingdom_users
+            WHERE kingdom_id=:kingdomId AND user_type!=0 AND user_type!=9";
 
     $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
     return $result['cnt'];

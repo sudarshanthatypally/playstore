@@ -41,7 +41,7 @@ class achievementTestListAction extends baseAction{
     $achievementLib = autoload::loadLibrary('queryLib', 'achievement');
     $result = array();
 
-    $masterAchievementList = $achievementLib->getMasterAchievementList();
+    $masterAchievementList = $achievementLib->getMasterAchievementList()
     foreach($masterAchievementList as $item)
     {
       $temp = array();

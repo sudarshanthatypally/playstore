@@ -320,7 +320,7 @@ class kingdomUserLevelAction extends baseAction
     $result['kingdom_id'] = $requesterDetails['kingdom_id'];
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
-    $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
+    $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];

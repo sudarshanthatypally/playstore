@@ -84,7 +84,7 @@ class card{
     $sql = "SELECT * 
             FROM master_card 
             WHERE master_stadium_id<=:masterStadiumId 
-              AND card_type=:cardType";
+              AND card_type=:cardType AND is_available=1";
       $result = database::doSelect($sql, array('masterStadiumId'=>$masterStadiumId, 'cardType'=>$cardType));
       return $result;
   } 

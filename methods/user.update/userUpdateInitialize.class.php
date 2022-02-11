@@ -103,6 +103,13 @@ class userUpdateInitialize extends baseInitialize{
       "default" => "",
       "description" => "isStorybookTutorial"
     );
+    $parameter["editNameCost"] = array(
+      "name" => "editname_cost",
+      "type" => "text", 
+      "required" => false,
+      "default" => "",
+      "description" => "editNameCost"
+    );
     return $parameter;
   }
 }

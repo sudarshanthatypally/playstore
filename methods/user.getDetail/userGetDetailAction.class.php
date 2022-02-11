@@ -49,12 +49,15 @@ class userGetDetailAction extends baseAction{
     //User detail with cards list which is in use deck.
     $userLib->checkForUserLevelUp($this->userId);
     $currDate= date('Y-m-d H:i:s');
-    $questLib->insertMasterQuestInventory(array(
-      'quest_id' => 1,
-      'time' => date('Y-m-d H:i:s'),
-      'user_id' => $this->userId,
-      'status' => CONTENT_ACTIVE,
-      'created_at' => date('Y-m-d H:i:s')));
+    $qv = $questLib->getQuestCollectFreeReward($this->userId, $this->androidVerId, $this->iosVerId);
+    if(empty($qv)){
+      $questLib->insertMasterQuestInventory(array(
+        'quest_id' => 1,
+        'time' => date('Y-m-d H:i:s'),
+        'user_id' => $this->userId,
+        'status' => CONTENT_ACTIVE,
+        'created_at' => date('Y-m-d H:i:s')));
+    }
     if($this->levelUp==1){
       $userLib->updateUser($this->userId, array('level_up' => 0));
     }
@@ -210,15 +213,22 @@ class userGetDetailAction extends baseAction{
     $result['editname_count'] = $userDetail['editname_count'];
     //$result['android_update'] = true;
     //$result['ios_update'] = true;
-    $result['android_appversion'] = "1.0.16";
-    $result['ios_appversion'] = "1.0.10";
+    //$result['android_appversion'] = "1.0.22";
+    //$result['ios_appversion'] = "1.0.15";
+    
+    $serverConfig=$userLib->getServerConfig();
+
+    $result['android_appversion'] = $serverConfig['android_version'];
+    $result['ios_appversion'] = $serverConfig['ios_version'];
     if(!empty($result['android_appversion']) && !empty($this->androidVerId)){
+      $userLib->updateUser($this->userId, array('current_version' => "a-".$this->androidVerId));
       if(version_compare($result['android_appversion'],$this->androidVerId, '<=')){
         $result['android_update'] = false; 
       }else{
         $result['android_update'] = true;
       }
     }elseif(!empty($result['ios_appversion']) && !empty($this->iosVerId)){
+      $userLib->updateUser($this->userId, array('current_version' => "i-".$this->iosVerId));
       if(version_compare($result['ios_appversion'],$this->iosVerId, '<=')){
         $result['ios_update'] = false;
       }else{
@@ -229,11 +239,12 @@ class userGetDetailAction extends baseAction{
       $result['ios_update'] = true;
     }
     //$result['updatedurl'] = "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776 \n Android=Coming Soon";
+    $result['editname_cost'] = 500;
     $result['android_updatedurl']="https://play.google.com/store/apps/details?id=com.wss.epikoregal";
     $result['ios_updatedurl']= "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776";
     $result['invite_baseurl']="https://epikoregal.com/";
     $result['invite_prefixurl']="friendlybattle.page.link";
-    $result['maintainanceon'] = false;
+    $result['maintainanceon'] = $serverConfig['is_server'];
     $result['level_up'] = $userDetail['level_up'];
     $result['stadium_level_up'] = $userDetail['stadium_level_up'];
     $result['max_stadium_id'] = $userDetail['max_stadium_id'];

@@ -1,5 +1,5 @@
 <?php
-class questListInitialize extends baseInitialize{
+class questClaimInitialize extends baseInitialize{
 
   public $requestMethod = array("GET", "POST");
   public $isSecured = true;
@@ -7,7 +7,14 @@ class questListInitialize extends baseInitialize{
   public function getParameter()
   {
     $parameter = array();
-    $parameter["androidVerId"] = array(
+    $parameter["questId"] = array(
+      "name" => "quest_id",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "quest_id"
+    );
+    /*$parameter["androidVerId"] = array(
       "name" => "android_version_id",
       "type" => "text",
       "required" => false,
@@ -17,10 +24,10 @@ class questListInitialize extends baseInitialize{
     $parameter["iosVerId"] = array(
       "name" => "ios_version_id",
       "type" => "text",
-      "required" => false, 
+      "required" => false,
       "default" => "",
       "description" => "ios_version_id"
-    );
+    );*/
     return $parameter;
   }
 }

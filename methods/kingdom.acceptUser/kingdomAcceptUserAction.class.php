@@ -49,105 +49,107 @@ class kingdomAcceptUserAction extends baseAction
     $requesterDetails= $kingdomLib->getKingdomUserDetailsWithUsersId($this->userId);
     $kuDetails= $kingdomLib->getKingdomUserDetailsWithRequestUsersId($this->acceptUserId, $requesterDetails['kingdom_id']);
     $kUserData= $kingdomLib->getKingdomUserDetailsUsersId($this->acceptUserId);
-    if($kUserData['user_type']==0){
-      if(!empty($kuDetails) && $kuDetails['user_type']==0){  
-        $kingdomDetails= $kingdomLib->getKingdomDetails($requesterDetails['kingdom_id']);
-        //print_log("userCount:".$user_cnt);
-        //print_log($kuDetails['kingdom_id']);
-        $kingdomLib->updateKingdomUser($this->acceptUserId,$requesterDetails['kingdom_id'], array(
-          'user_type' => 1
+    $kingdomDetails= $kingdomLib->getKingdomDetails($requesterDetails['kingdom_id']);
+    $kingdomUserCntWithoutReq= $kingdomLib->getKingdomUsersCountwithoutRequested($requesterDetails['kingdom_id']);
+    if($kingdomUserCntWithoutReq<$kingdomDetails['kingdom_limit']){
+      if($kUserData['user_type']==0){
+        if(!empty($kuDetails) && $kuDetails['user_type']==0){  
+          $kingdomDetails= $kingdomLib->getKingdomDetails($requesterDetails['kingdom_id']);
+          $kingdomLib->updateKingdomUser($this->acceptUserId,$requesterDetails['kingdom_id'], array(
+            'user_type' => 1
+          ));
+          
+          $kingdomLib->deleteKingdomRequestedMsg($this->acceptUserId, $requesterDetails['kingdom_id'], 7);
+          $kingdomLib->deleteKingdomRequestedMsgList($this->acceptUserId, 7);
+          $notificationLib->deleteKingdomNotificationOnAccept($this->acceptUserId);
+
+          /*$kingdomLib->updateKingdomMessage($this->acceptUserId,$requesterDetails['kingdom_id'], array(
+            'msg_type' => 5
+          ));  */
+          $sender = $userLib->getUserDetail($this->userId);
+          $receiver = $userLib->getUserDetail($this->acceptUserId);
+          $sname = empty($sender['name'])?"Guest_".$this->userId:$sender['name'];
+          $rname = empty($receiver['name'])?"Guest_".$this->acceptUserId:$receiver['name'];
+          /*$kingdomLib->updateKingdomReqMessage($this->msgId, array(
+            'kingdom_id' => $requesterDetails['kingdom_id'],
+            'msg_type' => 5,
+            'chat_type' => 2,
+            'is_update' => 1,
+            'message' => $rname." accepted by ".$sname,
+            'updated_at' => date('Y-m-d H:i:s')
+        )); */
+          $massageId = $kingdomLib->insertKingdomMsg(array(
+            'kingdom_id' => $requesterDetails['kingdom_id'],
+            'sent_by' => $this->acceptUserId,
+            'received_by' => "",
+            'msg_type' => 5,
+            'chat_type' => 2,
+            'is_update' => 1,
+            'message' => $rname." accepted by ".$sname,
+            'msg_delete_id' => $this->smsId,
+            'created_at' => date('Y-m-d H:i:s')
         ));
+        $data = array(
+          'user_id'=>$this->acceptUserId,
+          'kingdom_id'=>$requesterDetails['kingdom_id']
+        );
+        $notification = $notificationLib->addNotification(5,CONTENT_TYPE_USER,$this->acceptUserId, $data);
         
-        $kingdomLib->deleteKingdomRequestedMsg($this->acceptUserId, $requesterDetails['kingdom_id'], 7);
-        $kingdomLib->deleteKingdomRequestedMsgList($this->acceptUserId, 7);
-        $notificationLib->deleteKingdomNotificationOnAccept($this->acceptUserId);
-
-        /*$kingdomLib->updateKingdomMessage($this->acceptUserId,$requesterDetails['kingdom_id'], array(
-          'msg_type' => 5
-        ));  */
-        $sender = $userLib->getUserDetail($this->userId);
-        $receiver = $userLib->getUserDetail($this->acceptUserId);
-        $sname = empty($sender['name'])?"Guest_".$this->userId:$sender['name'];
-        $rname = empty($receiver['name'])?"Guest_".$this->acceptUserId:$receiver['name'];
-        /*$kingdomLib->updateKingdomReqMessage($this->msgId, array(
-          'kingdom_id' => $requesterDetails['kingdom_id'],
-          'msg_type' => 5,
-          'chat_type' => 2,
-          'is_update' => 1,
-          'message' => $rname." accepted by ".$sname,
-          'updated_at' => date('Y-m-d H:i:s')
-      )); */
-        $massageId = $kingdomLib->insertKingdomMsg(array(
-          'kingdom_id' => $requesterDetails['kingdom_id'],
-          'sent_by' => $this->acceptUserId,
-          'received_by' => "",
-          'msg_type' => 5,
-          'chat_type' => 2,
-          'is_update' => 1,
-          'message' => $rname." accepted by ".$sname,
-          'msg_delete_id' => $this->smsId,
-          'created_at' => date('Y-m-d H:i:s')
-      ));
-
-      print_log("------------------msgId--------------:::::::".$this->smsId);
-      $data = array(
-        'user_id'=>$this->acceptUserId,
-        'kingdom_id'=>$requesterDetails['kingdom_id']
-      );
-      $notification = $notificationLib->addNotification(5,CONTENT_TYPE_USER,$this->acceptUserId, $data);
-      
-        $userLib->updateUser($this->acceptUserId, array(
-          'kingdom_id' => $requesterDetails['kingdom_id']
-      ));  
-        //$kingdomLib->deleteKingdomRequestedUser($this->acceptUserId, $requesterDetails['kingdom_id'], 1);
-        $kingdomUsers = $kingdomLib->getKingdomUsersList($requesterDetails['kingdom_id']);
-        $kingdomDetailsOnRelics = $kingdomLib->getKingdomUserDetailsOnRelics($requesterDetails['kingdom_id']);
-        foreach($kingdomDetailsOnRelics as $ku)
-        {
-          $userDetails = $userLib->getUserDetail($ku['user_id']);
-          $tempUsers = array();
-          $tempUsers['rank'] = $ku['srno'];
-          $tempUsers['user_id'] = $ku['user_id'];
-          $tempUsers['name'] = $userDetails['name'];
-          $tempUsers['user_type'] = $ku['user_type'];
-          $tempUsers['facebook_id'] = $userDetails['facebook_id'];
-          $tempUsers['user_trophies'] = $userDetails['relics'];
-          $tempUsers['user_total_gold'] = $userDetails['gold'];
-          $tempUsers['donation'] = $ku['donation'];
-          $userList[] = $tempUsers;
-        }
-        $kingdomStatus=1;
-        if($requesterDetails['user_type']>=2){
-          $kingdomRequestedDetailsOnRelics = $kingdomLib->getKingdomUserRequestedDetailsOnRelics($requesterDetails['kingdom_id']);
-          foreach($kingdomRequestedDetailsOnRelics as $kru)
+          $userLib->updateUser($this->acceptUserId, array(
+            'kingdom_id' => $requesterDetails['kingdom_id']
+        ));  
+          //$kingdomLib->deleteKingdomRequestedUser($this->acceptUserId, $requesterDetails['kingdom_id'], 1);
+          $kingdomUsers = $kingdomLib->getKingdomUsersList($requesterDetails['kingdom_id']);
+          $kingdomDetailsOnRelics = $kingdomLib->getKingdomUserDetailsOnRelics($requesterDetails['kingdom_id']);
+          foreach($kingdomDetailsOnRelics as $ku)
           {
-            $userRDetails = $userLib->getUserDetail($ku['user_id']);
-            $tempRequestedUsers = array();
-            $tempRequestedUsers['rank'] = $kru['srno'];
-            $tempRequestedUsers['user_id'] = $kru['user_id'];
-            $tempRequestedUsers['name'] = $userRDetails['name'];
-            $tempRequestedUsers['user_type'] = $kru['user_type'];
-            $tempRequestedUsers['facebook_id'] = $userRDetails['facebook_id'];
-            $tempRequestedUsers['user_trophies'] = $userRDetails['relics'];
-            $tempRequestedUsers['user_total_gold'] = $userRDetails['gold'];
-            $tempRequestedUsers['donation'] = $kru['donation'];
-            $requestedUserList[] = $tempRequestedUsers;
+            $userDetails = $userLib->getUserDetail($ku['user_id']);
+            $tempUsers = array();
+            $tempUsers['rank'] = $ku['srno'];
+            $tempUsers['user_id'] = $ku['user_id'];
+            $tempUsers['name'] = $userDetails['name'];
+            $tempUsers['user_type'] = $ku['user_type'];
+            $tempUsers['facebook_id'] = $userDetails['facebook_id'];
+            $tempUsers['user_trophies'] = $userDetails['relics'];
+            $tempUsers['user_total_gold'] = $userDetails['gold'];
+            $tempUsers['donation'] = $ku['donation'];
+            $userList[] = $tempUsers;
           }
+          $kingdomStatus=1;
+          if($requesterDetails['user_type']>=2){
+            $kingdomRequestedDetailsOnRelics = $kingdomLib->getKingdomUserRequestedDetailsOnRelics($requesterDetails['kingdom_id']);
+            foreach($kingdomRequestedDetailsOnRelics as $kru)
+            {
+              $userRDetails = $userLib->getUserDetail($ku['user_id']);
+              $tempRequestedUsers = array();
+              $tempRequestedUsers['rank'] = $kru['srno'];
+              $tempRequestedUsers['user_id'] = $kru['user_id'];
+              $tempRequestedUsers['name'] = $userRDetails['name'];
+              $tempRequestedUsers['user_type'] = $kru['user_type'];
+              $tempRequestedUsers['facebook_id'] = $userRDetails['facebook_id'];
+              $tempRequestedUsers['user_trophies'] = $userRDetails['relics'];
+              $tempRequestedUsers['user_total_gold'] = $userRDetails['gold'];
+              $tempRequestedUsers['donation'] = $kru['donation'];
+              $requestedUserList[] = $tempRequestedUsers;
+            }
+          }
+        }else{
+          $this->setResponse('CUSTOM_ERROR', array('error'=>'Accepting User Id not valid..'));
+          return new ArrayObject();
         }
       }else{
-        $this->setResponse('CUSTOM_ERROR', array('error'=>'Accepting User Id not valid..'));
-        return new ArrayObject();
+        $this->setResponse('USER_ALREADY_IN_KINGDOM');
+          return new ArrayObject();
       }
     }else{
-      $this->setResponse('USER_ALREADY_IN_KINGDOM');
-        return new ArrayObject();
+      $kingdomStatus=6;
     }
     
     
     $result['kingdom_id'] = $requesterDetails['kingdom_id'];
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
-    $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
+    $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];

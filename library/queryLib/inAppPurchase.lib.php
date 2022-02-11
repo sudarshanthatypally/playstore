@@ -74,6 +74,15 @@ class inAppPurchase{
     $result = database::doInsert($sql, $options);
     return $result;
   }
+  public function insertInAppPurchaseInventory($options=array())
+  {
+    $sql = "INSERT INTO inAppPurchase_inventory";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
 
   public function getMasterInventoryList($options=array())
   {

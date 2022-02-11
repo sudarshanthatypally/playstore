@@ -19,12 +19,15 @@ class user{
     $result = database::doSelect($sql);
     return $result;
   }
-  public function getServerConfig($options=array())
+  public function getBadgeByUserRelics($relics, $options=array())
   {
-    $sql = "SELECT *
-            FROM server_config";
+    $sql = "SELECT * 
+    FROM master_badge 
+    WHERE min_relic_count<=:relics 
+    ORDER BY master_badge_id DESC 
+    LIMIT 1";
 
-    $result = database::doSelectOne($sql);
+    $result = database::doSelectOne($sql, array('relics'=>$relics));
     return $result;
   }
   public function getUserDetail($userId, $options=array())
@@ -40,15 +43,6 @@ class user{
     $sql ="SELECT @a:=@a+1 srno, u.*
             FROM user u,(SELECT @a:= 0) AS a
             WHERE u.is_ai!=1
-            ORDER BY u.relics DESC
-LIMIT 100"; 
-    $result = database::doSelect($sql);
-    return $result;
-  }
-  public function getUserDetailsOnRelicsForUser($options=array()){
-    $sql ="SELECT @a:=@a+1 srno, u.*
-            FROM user u,(SELECT @a:= 0) AS a
-            WHERE u.is_ai!=1
             ORDER BY u.relics DESC"; 
     $result = database::doSelect($sql);
     return $result;
@@ -60,18 +54,6 @@ LIMIT 100";
 
     $resultxp = database::doSelectOne($sql);
   }
-  public function getBadgeByUserRelics($relics, $options=array())
-  {
-    $sql = "SELECT * 
-    FROM master_badge 
-    WHERE min_relic_count<=:relics 
-    ORDER BY master_badge_id DESC 
-    LIMIT 1";
-
-    $result = database::doSelectOne($sql, array('relics'=>$relics));
-    return $result;
-  }
-  
   public function getUserCrystalDetail($userCubeId, $stadiumId, $options = array())
   {
     $sql = "SELECT *
@@ -88,25 +70,6 @@ LIMIT 100";
     $sql .= "( :".implode(", :", array_keys($options))." )";
 
     $result = database::doInsert($sql, $options);
-    return $result;
-  }
-  public function insertEditName($options=array())
-  {
-    $sql = "INSERT INTO editName_inventory ";
-    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
-    $sql .= "( :".implode(", :", array_keys($options))." )";
-
-    $result = database::doInsert($sql, $options);
-    return $result;
-  }
-  public function getEditNameClaimed($userId, $dt){
-    date_default_timezone_set('Asia/Kolkata');
-    $sql = "SELECT * 
-            FROM editName_inventory eni
-            WHERE user_id=:userId AND eni.time > '".$dt."'- INTERVAL 1 DAY
-            ORDER BY eni.editname_id DESC";
-  
-    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
     return $result;
   }
   public function insertBattleHistory($options=array())
@@ -146,17 +109,6 @@ LIMIT 100";
             LIMIT 1";
 
     $result = database::doSelect($sql, array('userId'=>$userId, 'roomId'=>$roomId));
-    return $result;
-  }
-  public function getFriendlyBattleHistoryWithRoomList($roomId, $options=array())
-  {
-    $sql = "SELECT *
-            FROM friendly_battle_history
-            WHERE room_id=:roomId
-            ORDER BY created_at DESC
-            LIMIT 1";
-
-    $result = database::doSelectOne($sql, array('roomId'=>$roomId));
     return $result;
   }
   public function getCheckRoomIdInFriendlyBattleHistoryList($roomId, $options=array())

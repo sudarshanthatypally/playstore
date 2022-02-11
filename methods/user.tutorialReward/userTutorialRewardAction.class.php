@@ -83,7 +83,7 @@ class userTutorialRewardAction extends baseAction{
       }
     }
     $cubeBonus['is_lapsed'] = (count($userRewardList)>= MIN_CUBE_REWARD)?true:false;
-
+    $userLib->updateUser($this->userId, array('tutorial_seq' => 1));
     //if user rewarded with a cube then add to user_reward
     if(!($cubeBonus['is_lapsed']) && !empty($cubeBonus['cube_id']))
     {

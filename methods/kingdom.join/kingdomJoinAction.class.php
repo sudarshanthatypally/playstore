@@ -46,93 +46,103 @@ class kingdomJoinAction extends baseAction
     //$kingdom_cnt = $kingdomLib->checkKingdomAlreadyExisted($this->kingdomName);
     $kingdomDetails= $kingdomLib->getKingdomDetails($this->kingdomId);
     //print_log("userCount:".$user_cnt);
-    print_log($this->kingdomId);
-    print_log($this->userId);
+    $kingdomUserCnt= $kingdomLib->getKingdomUsersCount($this->kingdomId);
+    print_log("----------------- limit --------------------");
+    print_log("usrcount::".$kingdomUserCnt);
+    print_log("limit::".$kingdomDetails['kingdom_limit']);
+    print_log("----------------- limit --------------------");
     print_log($kingdomDetails['kingdom_req_cup_amt']."<=".$user['relics']);
-    if($user_cnt == 0)
+    
+    if($kingdomUserCnt<$kingdomDetails['kingdom_limit'])
     {
-      if($kingdomDetails['kingdom_req_cup_amt']<=$user['relics']){
-        /*if($user['gold'] >= KINGDOM_GOLD_REQUIRED)
-        {*/
-          if(!empty($this->kingdomId))
-          {
-            $kingdomUserCnt= $kingdomLib->getKingdomUsersCount($this->kingdomId);
-            if($kingdomUserCnt ==1){
-              $user_type =3;
-            }else{
-              $user_type=1;
-            }
-            $kingdomUserId = $kingdomLib->insertKingdomUser(array(
-                'user_id' => $this->userId,
-                'user_type' => 1,
-                'avatar_url' => $user['avatar_url'],
-                'user_trophies' => $user['relics'],
+      if($user_cnt == 0)
+      {
+        if($kingdomDetails['kingdom_req_cup_amt']<=$user['relics'] || $kingdomDetails['kingdom_req_cup_amt']==0){
+          /*if($user['gold'] >= KINGDOM_GOLD_REQUIRED)
+          {*/
+            if(!empty($this->kingdomId))
+            {
+              $kingdomUserCnt= $kingdomLib->getKingdomUsersCount($this->kingdomId);
+              if($kingdomUserCnt ==1){
+                $user_type =3;
+              }else{
+                $user_type=1;
+              }
+              $kingdomUserId = $kingdomLib->insertKingdomUser(array(
+                  'user_id' => $this->userId,
+                  'user_type' => 1,
+                  'avatar_url' => $user['avatar_url'],
+                  'user_trophies' => $user['relics'],
+                  'kingdom_id' => $this->kingdomId,
+                  'is_active' => 1,
+                  'created_at' => date('Y-m-d H:i:s')
+              ));
+              $msgId = $kingdomLib->insertKingdomMsg(array(
                 'kingdom_id' => $this->kingdomId,
-                'is_active' => 1,
+                'sent_by' => $this->userId,
+                'received_by' => "",
+                'msg_type' => 5,
+                'chat_type' => 2,
+                'message' => "",
                 'created_at' => date('Y-m-d H:i:s')
             ));
-            $msgId = $kingdomLib->insertKingdomMsg(array(
-              'kingdom_id' => $this->kingdomId,
-              'sent_by' => $this->userId,
-              'received_by' => "",
-              'msg_type' => 5,
-              'chat_type' => 2,
-              'message' => "",
-              'created_at' => date('Y-m-d H:i:s')
-          ));
-          $data = array(
-            'user_id'=>$this->userId,
-            'kingdom_id'=>$this->kingdomId
-          );
-          $notification = $notificationLib->addNotification(5,CONTENT_TYPE_USER,$this->userId, $data);
-          
-            $userLib->updateUser($this->userId, array(
-                'kingdom_id' => $this->kingdomId
-            ));
-            //'gold' => ($user['gold'] - KINGDOM_GOLD_REQUIRED) 
-          }
-          $kingdomUsers = $kingdomLib->getKingdomUsersList($this->kingdomId);
-          $kingdomDetailsOnRelics = $kingdomLib->getKingdomUserDetailsOnRelics($this->kingdomId);
-          foreach($kingdomDetailsOnRelics as $ku)
-          {
-            $userDetails = $userLib->getUserDetail($ku['user_id']);
-            $tempUsers = array();
-            $tempUsers['rank'] = $ku['srno'];
-            $tempUsers['user_id'] = $ku['user_id'];
-            $tempUsers['name'] = $userDetails['name'];
-            $tempUsers['user_type'] = $ku['user_type'];
-            $tempUsers['facebook_id'] = $userDetails['facebook_id'];
-            $tempUsers['user_trophies'] = $userDetails['relics'];
-            $tempUsers['user_total_gold'] = $userDetails['gold'];
-            $tempUsers['donation'] = $ku['donation'];
-            $userList[] = $tempUsers;
-          }
-          $kingdomStatus=1;
-        /*}else{
-          $kingdomStatus=4;
-        }*/
+            $data = array(
+              'user_id'=>$this->userId,
+              'kingdom_id'=>$this->kingdomId
+            );
+            $notification = $notificationLib->addNotification(5,CONTENT_TYPE_USER,$this->userId, $data);
+            
+              $userLib->updateUser($this->userId, array(
+                  'kingdom_id' => $this->kingdomId
+              ));
+              //'gold' => ($user['gold'] - KINGDOM_GOLD_REQUIRED) 
+            }
+            $kingdomUsers = $kingdomLib->getKingdomUsersList($this->kingdomId);
+            $kingdomDetailsOnRelics = $kingdomLib->getKingdomUserDetailsOnRelics($this->kingdomId);
+            foreach($kingdomDetailsOnRelics as $ku)
+            {
+              $userDetails = $userLib->getUserDetail($ku['user_id']);
+              $tempUsers = array();
+              $tempUsers['rank'] = $ku['srno'];
+              $tempUsers['user_id'] = $ku['user_id'];
+              $tempUsers['name'] = $userDetails['name'];
+              $tempUsers['user_type'] = $ku['user_type'];
+              $tempUsers['facebook_id'] = $userDetails['facebook_id'];
+              $tempUsers['user_trophies'] = $userDetails['relics'];
+              $tempUsers['user_total_gold'] = $userDetails['gold'];
+              $tempUsers['donation'] = $ku['donation'];
+              $userList[] = $tempUsers;
+            }
+            $kingdomStatus=1;
+          /*}else{
+            $kingdomStatus=4;
+          }*/
+        }else{
+            $kingdomStatus=2;
+            /*$this->setResponse('INSUFFICIENT_GOLD');
+            return new ArrayObject();*/
+        }
       }else{
-          $kingdomStatus=2;
-          /*$this->setResponse('INSUFFICIENT_GOLD');
-          return new ArrayObject();*/
+          $this->setResponse('KINGDOM_USER_ALREADY_EXISTED');
+          return new ArrayObject();
       }
     }else{
-        $this->setResponse('KINGDOM_USER_ALREADY_EXISTED');
-        return new ArrayObject();
+      $kingdomStatus=6;
     }
 
     $kd= $kingdomLib->getKingdomTotalRelics($this->kingdomId);
-
+    $kingdomUserCnt= $kingdomLib->getKingdomUsersCount($this->kingdomId);
     $result['kingdom_id'] = $this->kingdomId;
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
-    $result['kingdom_limit'] = $kingdomDetails['kingdom_limit'];
+    $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
     $result['trophies']=$kd['total'];
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];
     $result['kingdom_req_cup_amt'] = $kingdomDetails['kingdom_req_cup_amt'];
     $result['kingdom_success'] = $kingdomStatus;
+    $result['kingdom_users_count'] =$kingdomUserCnt;
     $result['kingdom_user_desc']="User Type Code = 0 : Requested, 1 : Member, 2 : Admin, 3: Co-Leader";
     //$userList[]=$userDetails;
     $result['kingdom_userlist']=$userList;

@@ -2,9 +2,9 @@
 /**
  * Author : Sudarshan Thatypally
  * Date   : 28-10-2020
- * Desc   : This is a controller file for userLeadershipBoard Action
+ * Desc   : This is a controller file for websiteUserLeadershipBoard Action
  */
-class userLeadershipBoardAction extends baseAction{
+class websiteUserLeadershipBoardAction extends baseAction{
 	/**
    * @OA\Get(path="?methodName=user.leadershipBoard", tags={"Users"}, 
    * @OA\Parameter(parameter="applicationKey", name="applicationKey", description="The applicationKey specific to this event",
@@ -36,9 +36,9 @@ class userLeadershipBoardAction extends baseAction{
 
     $result = $deckList = $temp = array();
 
-    $userDetail = $userLib->getUserDetail($this->userId);
+    //$userDetail = $userLib->getUserDetail($this->userId);
     
-    $limit=empty($this->fetchLimit)?10:$this->fetchLimit;
+    $limit=empty($this->fetchLimit)?100:$this->fetchLimit;
     //$userRelicsDetails = $userLib->getUserDetailsOnRelics($this->userId, $limit);
     $userRelicsDetail = $userLib->getUserDetailsOnRelics();
     //$result['name'] = $userDetail['name'];
@@ -47,9 +47,9 @@ class userLeadershipBoardAction extends baseAction{
     $matched=0;
     foreach ($userRelicsDetail as $userRelics)
     {  
-        if($this->userId == $userRelics['user_id']){
+       /* if($this->userId == $userRelics['user_id']){
           $matched=1;
-        }
+        }*/
         $temp = array();
         $temp['rank'] = $userRelics['srno'];
         $temp['name'] = $userRelics['name'];
@@ -57,16 +57,23 @@ class userLeadershipBoardAction extends baseAction{
         $temp['facebook_id']=$userRelics['facebook_id'];
         $temp['relics'] = $userRelics['relics'];
         $temp['avatar_url']=$userRelics['avatar_url'];
-        $temp['abc']=$matched;
+
+        $userBadgeDetail = $userLib->getBadgeByUserRelics($userRelics['relics']);
+        $temp['master_badge_id']=$userBadgeDetail['master_badge_id'];
+        $temp['title']=$userBadgeDetail['title'];
+        $temp['min_relic_count']=$userBadgeDetail['min_relic_count'];
+        $temp['max_relic_count']=$userBadgeDetail['max_relic_count'];
+
+        //$temp['abc']=$matched;
         $result[] = $temp;
         //print_log($temp);
         $cnt++;
-        if($cnt >= 100){
+        if($cnt >= $limit){
           break;
         }
     }
-    if($matched == 0){
-      $userRelicsDetails = $userLib->getUserDetailsOnRelicsForUser();
+    /*if($matched == 0){
+      $userRelicsDetails = $userLib->getUserDetailsOnRelics();
       foreach ($userRelicsDetails as $userRelic)
       {  
         if($userRelic['user_id']==$this->userId){
@@ -84,8 +91,8 @@ class userLeadershipBoardAction extends baseAction{
       }
       //print_log(array_merge($result,$res));
       
-      $result[]=array_merge($res,$result);
-    }
+      $result=array_merge($res,$result);
+    }*/
     //print_log("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------".$this->userId);
     //print_log($result);
     //userRelicsVal 
