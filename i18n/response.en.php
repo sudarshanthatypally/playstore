@@ -49,7 +49,7 @@ $response['INSUFFICIENT_GOLD'] = array("code"=>'232', "message"=>'Insufficient G
 $response['INSUFFICIENT_TROPHIES'] = array("code"=>'232', "message"=>'Insufficient Trophies/Cups for Create Kingdom, Failed to create the kingdom.');
 $response['REQUEST_LIMIT_EXCEEDED'] = array("code"=>'232', "message"=>'You have exceed the request limit for Kingdom.');
 $response['USER_ALREADY_IN_KINGDOM'] = array("code"=>'262', "message"=>'User already in the Kingdom.');
-
+$response['G_USER_ALREADY_EXISTS'] = array("code"=>'246', "message"=>'user already exists!');
 
 $response['CHARACTER_FAILED'] = array("code"=>'232', "message"=>'Failed to unlock the Character.');
 $response['CHARACTER_ALREADY_FAILED'] = array("code"=>'232', "message"=>'Failed to unlock the Character. Already fetched.');

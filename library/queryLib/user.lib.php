@@ -36,20 +36,46 @@ class user{
     $result = database::doSelectOne($sql, array('userId'=>$userId));
     return $result;
   }
+  public function getUserSameLoginDetail($deviceToken, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user
+            WHERE device_token LIKE '".$deviceToken."%'
+            ORDER BY last_access_time ASC";
+
+    $result = database::doSelect($sql);//, array('deviceToken'=>$deviceToken)
+    return $result;
+  }
+  public function getUserSameLoginDetailWithPlatform($deviceToken, $platformId, $options=array())
+  {
+    if($platformId==1){
+      $sql = "SELECT *
+            FROM user
+            WHERE device_token LIKE '".$deviceToken."%' AND game_center_id=''
+            ORDER BY last_access_time ASC";
+    }elseif($platformId==2){
+      $sql = "SELECT *
+            FROM user
+            WHERE device_token LIKE '".$deviceToken."%' AND google_id=''
+            ORDER BY last_access_time ASC";
+    }else{
+      $sql = "SELECT *
+            FROM user
+            WHERE device_token LIKE '".$deviceToken."%'
+            ORDER BY last_access_time ASC";
+    }
+    
+
+    $result = database::doSelect($sql);//, array('deviceToken'=>$deviceToken)
+    return $result;
+  }
+
   public function getUserDetailsOnRelics($options=array()){
     $sql ="SELECT @a:=@a+1 srno, u.*
             FROM user u,(SELECT @a:= 0) AS a
             WHERE u.is_ai!=1
             ORDER BY u.relics DESC
-LIMIT 100"; 
-    $result = database::doSelect($sql);
-    return $result;
-  }
-  public function getUserDetailsOnRelicsForUser($options=array()){
-    $sql ="SELECT @a:=@a+1 srno, u.*
-            FROM user u,(SELECT @a:= 0) AS a
-            WHERE u.is_ai!=1
-            ORDER BY u.relics DESC"; 
+            LIMIT 100"; 
     $result = database::doSelect($sql);
     return $result;
   }
@@ -370,7 +396,6 @@ LIMIT 100";
     $result = database::doSelectOne($sql, array('accountId' => $accountId));
     return $result;
   }
-
   public function getUserForGameCenterId($gameCenterId, $options = array())
   {
     $sql = "SELECT *

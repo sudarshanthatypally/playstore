@@ -34,7 +34,7 @@ class questClaimAction extends baseAction{
    * @OA\Response(response="232", description="Custom Error"),
    * @OA\Response(response="245", description="Player is offline"),
    * @OA\Response(response="404", description="Not Found")
-   * ) 
+   * )
    */
   public function execute()
   {

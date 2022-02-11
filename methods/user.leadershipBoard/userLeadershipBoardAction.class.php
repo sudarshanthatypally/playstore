@@ -66,7 +66,7 @@ class userLeadershipBoardAction extends baseAction{
         }
     }
     if($matched == 0){
-      $userRelicsDetails = $userLib->getUserDetailsOnRelicsForUser();
+      $userRelicsDetails = $userLib->getUserDetailsOnRelics();
       foreach ($userRelicsDetails as $userRelic)
       {  
         if($userRelic['user_id']==$this->userId){

@@ -35,6 +35,7 @@ class questListAction extends baseAction{
   public function execute()
   {
     $questLib = autoload::loadLibrary('queryLib', 'quest');
+    $userLib = autoload::loadLibrary('queryLib', 'user');
     $result = $cardId = array();//$temp = 
     date_default_timezone_set("Asia/Kolkata");
     // Get the List of all the Master Card
@@ -268,7 +269,7 @@ class questListAction extends baseAction{
           $temp['isclaimed']=1;  //0 available to claimed, 1 claimed, 2 not eligible
           $temp['current_slider_value']=1;
         }else{
-          if(!empty($qvk) || !empty($qv)){
+          if(!empty($qv) || !empty($qvk)){
             $temp['current_slider_value']=1;
             $temp['isclaimed']=0;
           }else{
@@ -277,6 +278,219 @@ class questListAction extends baseAction{
           }
         }
       }
+      if($qlist['master_quest_id']==4){
+        $temp['slider_maxvalue']=($qlist['slide_maxvalue']>0)?$qlist['slide_maxvalue']:0;
+        $temp['master_quest_id'] = $qlist['master_quest_id'];
+        $temp['title'] = $qlist['title'];
+        $temp['description'] = $qlist['description'];
+        if($qlist['frequency'] == 0){
+          $claim_freq = "Anytime";
+        }elseif($qlist['frequency'] == 1){
+          $claim_freq = "Once";
+        }elseif($qlist['frequency'] == 2){
+          $claim_freq = "Daily";
+        }elseif($qlist['frequency'] == 3){
+          $claim_freq = "Weekly";
+        }elseif($qlist['frequency'] == 4){
+          $claim_freq = "Monthly";
+        }else{
+          $claim_freq = "Anytime";
+        }
+        $temp['claim_freq'] = $claim_freq;
+        $temp['crystal_reward_bonus'] = $qlist['crystal'];
+        $temp['gold_reward_bonus'] = $qlist['gold'];
+        $temp['trophy_reward_bonus']=$qlist['trophies'];
+        $qv = $questLib->getQuestKathikaReward($this->userId, $this->androidVerId, $this->iosVerId);
+        $qc = $questLib->getKathikaQuestClaimed($this->userId);
+        $qvk = $questLib->getQuestKathikaRewardInKathika($this->userId);
+        if(!empty($qc)){
+          $temp['isclaimed']=1;  //0 available to claimed, 1 claimed, 2 not eligible
+          $temp['current_slider_value']=1;
+        }else{
+          if(!empty($qv) || !empty($qvk)){
+            $temp['current_slider_value']=1;
+            $temp['isclaimed']=0;
+          }else{
+            $temp['current_slider_value']=0;
+            $temp['isclaimed']=2;
+          }
+        }
+      }
+      if($qlist['master_quest_id']==5){
+        $temp['slider_maxvalue']=($qlist['slide_maxvalue']>0)?$qlist['slide_maxvalue']:0;
+        $temp['master_quest_id'] = $qlist['master_quest_id'];
+        $temp['title'] = $qlist['title'];
+        $temp['description'] = $qlist['description'];
+        if($qlist['frequency'] == 0){
+          $claim_freq = "Anytime";
+        }elseif($qlist['frequency'] == 1){
+          $claim_freq = "Once";
+        }elseif($qlist['frequency'] == 2){
+          $claim_freq = "Daily";
+        }elseif($qlist['frequency'] == 3){
+          $claim_freq = "Weekly";
+        }elseif($qlist['frequency'] == 4){
+          $claim_freq = "Monthly";
+        }else{
+          $claim_freq = "Anytime";
+        }
+        $temp['claim_freq'] = $claim_freq;
+        $temp['crystal_reward_bonus'] = $qlist['crystal'];
+        $temp['gold_reward_bonus'] = $qlist['gold'];
+        $temp['trophy_reward_bonus']=$qlist['trophies'];
+        $qv = $questLib->getQuestKingdomReward($this->userId);
+        $qc = $questLib->getKingdomQuestClaimed($this->userId);
+        //$qvk = $questLib->getQuestKathikaRewardInKathika($this->userId);
+        if(!empty($qc)){
+          $temp['isclaimed']=1;  //0 available to claimed, 1 claimed, 2 not eligible
+          $temp['current_slider_value']=1;
+        }else{
+          if(!empty($qv)){ 
+            //|| !empty($qvk
+            $temp['current_slider_value']=1;
+            $temp['isclaimed']=0;
+          }else{
+            $temp['current_slider_value']=0;
+            $temp['isclaimed']=2;
+          }
+        }
+      }
+      if($qlist['master_quest_id']==7){
+        $temp['slider_maxvalue']=($qlist['slide_maxvalue']>0)?$qlist['slide_maxvalue']:0;
+        $temp['master_quest_id'] = $qlist['master_quest_id'];
+        $temp['title'] = $qlist['title'];
+        $temp['description'] = $qlist['description'];
+        if($qlist['frequency'] == 0){
+          $claim_freq = "Anytime";
+        }elseif($qlist['frequency'] == 1){
+          $claim_freq = "Once";
+        }elseif($qlist['frequency'] == 2){
+          $claim_freq = "Daily";
+        }elseif($qlist['frequency'] == 3){
+          $claim_freq = "Weekly";
+        }elseif($qlist['frequency'] == 4){
+          $claim_freq = "Monthly";
+        }else{
+          $claim_freq = "Anytime";
+        }
+        $temp['claim_freq'] = $claim_freq;
+        $temp['crystal_reward_bonus'] = $qlist['crystal'];
+        $temp['gold_reward_bonus'] = $qlist['gold'];
+        $temp['trophy_reward_bonus']=$qlist['trophies'];
+        $qv = $questLib->getQuestUserStadium5Reward($this->userId);
+        $qc = $questLib->getQuestUserStadium5Claimed($this->userId);
+        if(!empty($qc)){
+          $temp['isclaimed']=1;  //0 available to claimed, 1 claimed, 2 not eligible
+          $temp['current_slider_value']=!empty($qv['slide_count'])?$qv['slide_count']:0;
+        }else{
+          //----------------------------- quest reached leve 5 stadium  -----------------------------------
+          $qUserStadiumv = $questLib->getQuestUserStadium5Reward($this->userId);
+          $user = $userLib->getUserDetail($this->userId);
+            if($qUserStadiumv['slide_count']>=$qUserStadiumv['slide_maxvalue']){
+              $questData= $questLib->getBattleQuestData(7,$this->userId);
+              if(empty($questData)){
+                if($user['master_stadium_id']<=5){
+                  $questLib->insertMasterQuestInventory(array(
+                    'quest_id' => 7,
+                    'time' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->userId,
+                    'status' => CONTENT_ACTIVE,
+                    'slide_count'=>!empty($user['master_stadium_id'])?$user['master_stadium_id']:1,
+                    'created_at' => date('Y-m-d H:i:s')));
+                }elseif($user['master_stadium_id']>=5){
+                  $questLib->insertMasterQuestInventory(array(
+                    'quest_id' => 7,
+                    'time' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->userId,
+                    'status' => CONTENT_ACTIVE,
+                    'slide_count'=>$qUserStadiumv['slide_maxvalue'],
+                    'created_at' => date('Y-m-d H:i:s')));
+                }
+                
+              }
+              /*else{
+                if($user['master_stadium_id']<=5){
+                  $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $user['master_stadium_id']));
+                }elseif($user['master_stadium_id']>=5){
+                  $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $qUserStadiumv['slide_maxvalue']));
+                }else{
+                  $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $questData['slide_count']+1));
+                }  
+              } */
+            }
+          $qv = $questLib->getQuestUserStadium5Reward($this->userId);
+          // -------------------------------- quest reached leve 5 stadium  --------------------------
+          if(!empty($qv)){
+            $qUserStadiumv = $questLib->getQuestUserStadium5Reward($this->userId);
+            $user = $userLib->getUserDetail($this->userId);
+            $questData= $questLib->getBattleQuestData(7,$this->userId);
+            if($qUserStadiumv['slide_count']!=$qUserStadiumv['slide_maxvalue']){
+             
+              if($user['master_stadium_id']<5){
+                $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $user['master_stadium_id']));
+              }elseif($user['master_stadium_id']>5){
+                $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $qUserStadiumv['slide_maxvalue']));
+              }else{
+                $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $questData['slide_count']+1));
+              }
+              
+            }  
+            $qv = $questLib->getQuestUserStadium5Reward($this->userId);
+
+            $temp['current_slider_value']=!empty($qv['slide_count'])?$qv['slide_count']:0;
+            if($temp['slider_maxvalue']<=$temp['current_slider_value']){
+              $temp['isclaimed']=0;
+            }else{
+              $temp['isclaimed']=2;
+            }
+          }else{
+            $temp['current_slider_value']=0;
+            $temp['isclaimed']=2;
+          }
+        }
+      }
+      if($qlist['master_quest_id']==17){
+        $temp['slider_maxvalue']=($qlist['slide_maxvalue']>0)?$qlist['slide_maxvalue']:0;
+        $temp['master_quest_id'] = $qlist['master_quest_id'];
+        $temp['title'] = $qlist['title'];
+        $temp['description'] = $qlist['description'];
+        if($qlist['frequency'] == 0){
+          $claim_freq = "Anytime";
+        }elseif($qlist['frequency'] == 1){
+          $claim_freq = "Once";
+        }elseif($qlist['frequency'] == 2){
+          $claim_freq = "Daily";
+        }elseif($qlist['frequency'] == 3){
+          $claim_freq = "Weekly";
+        }elseif($qlist['frequency'] == 4){
+          $claim_freq = "Monthly";
+        }else{
+          $claim_freq = "Anytime";
+        }
+        $temp['claim_freq'] = $claim_freq;
+        $temp['crystal_reward_bonus'] = $qlist['crystal'];
+        $temp['gold_reward_bonus'] = $qlist['gold'];
+        $temp['trophy_reward_bonus']=$qlist['trophies'];
+        $qv = $questLib->getQuestKathikaReward($this->userId, $this->androidVerId, $this->iosVerId);
+        $qc = $questLib->getKathikaQuestClaimed($this->userId);
+        $qvk = $questLib->getQuestKathikaRewardInKathika($this->userId);
+        if(!empty($qc)){
+          $temp['isclaimed']=1;  //0 available to claimed, 1 claimed, 2 not eligible
+          $temp['current_slider_value']=1;
+        }else{
+          if(!empty($qv) || !empty($qvk)){
+            $temp['current_slider_value']=1;
+            $temp['isclaimed']=0;
+          }else{
+            $temp['current_slider_value']=0;
+            $temp['isclaimed']=2;
+          }
+        }
+      }
+      /*elseif(!empty($qvk)){
+            $temp['current_slider_value']=1;
+            $temp['isclaimed']=0;
+          }*/ 
       /*else{
         $temp['current_slider_value']=0;
         $temp['isclaimed']=2;

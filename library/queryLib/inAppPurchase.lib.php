@@ -83,7 +83,6 @@ class inAppPurchase{
     $result = database::doInsert($sql, $options);
     return $result;
   }
-
   public function getMasterInventoryList($options=array())
   {
     $sql = "SELECT *

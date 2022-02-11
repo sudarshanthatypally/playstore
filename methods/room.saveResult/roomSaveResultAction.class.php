@@ -359,6 +359,49 @@ class roomSaveResultAction extends baseAction{
           if($masterStadium['master_stadium_id']>$user['max_stadium_id']){
             $userParamList['max_stadium_id'] = $masterStadium['master_stadium_id'];
             $userParamList['stadium_level_up'] = 1;
+            
+            //----------------------------- quest reached leve 5 stadium  -----------------------------------
+          $qUserStadiumv = $questLib->getQuestUserStadium5Reward($this->userId);
+          $user = $userLib->getUserDetail($this->userId);
+            if($qUserStadiumv['slide_count']>=$qUserStadiumv['slide_maxvalue']){
+              $questData= $questLib->getBattleQuestData(7,$this->userId);
+              if(empty($questData)){
+                if($user['master_stadium_id']<=5){
+                  $questLib->insertMasterQuestInventory(array(
+                    'quest_id' => 7,
+                    'time' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->userId,
+                    'status' => CONTENT_ACTIVE,
+                    'slide_count'=>!empty($user['master_stadium_id'])?$user['master_stadium_id']:1,
+                    'created_at' => date('Y-m-d H:i:s')));
+                }elseif($user['master_stadium_id']>=5){
+                  $questLib->insertMasterQuestInventory(array(
+                    'quest_id' => 7,
+                    'time' => date('Y-m-d H:i:s'),
+                    'user_id' => $this->userId,
+                    'status' => CONTENT_ACTIVE,
+                    'slide_count'=>$qUserStadiumv['slide_maxvalue'],
+                    'created_at' => date('Y-m-d H:i:s')));
+                }
+                
+              }else{
+                $qUserStadiumv = $questLib->getQuestUserStadium5Reward($this->userId);
+                $user = $userLib->getUserDetail($this->userId);
+                $questData= $questLib->getBattleQuestData(7,$this->userId);
+                if($qUserStadiumv['slide_count']!=$qUserStadiumv['slide_maxvalue']){  
+                  if($user['master_stadium_id']<=5){
+                    $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $user['master_stadium_id']));
+                  }elseif($user['master_stadium_id']>=5){
+                    $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $qUserStadiumv['slide_maxvalue']));
+                  }else{
+                    $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $questData['slide_count']+1));
+                  } 
+                } 
+              } 
+            }
+          //$qv = $questLib->getQuestUserStadium5Reward($this->userId);
+          // -------------------------------- quest reached leve 5 stadium  --------------------------
+            
           }else{
             $userParamList['max_stadium_id'] = $user['max_stadium_id'];
           }

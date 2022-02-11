@@ -50,6 +50,7 @@ class kingdomCreateAction extends baseAction
     $userLib = autoload::loadLibrary('queryLib', 'user');
     //$roomLib = autoload::loadLibrary('queryLib', 'room');
     $kingdomLib = autoload::loadLibrary('queryLib', 'kingdom');
+    $questLib = autoload::loadLibrary('queryLib', 'quest');
     //$inviteLib = autoload::loadLibrary('queryLib', 'invite');
     //$notificationLib = autoload::loadLibrary('queryLib', 'notification');
     $result = array();
@@ -81,7 +82,7 @@ class kingdomCreateAction extends baseAction
                   'kingdom_desc' => $this->kingdomDesc,
                   'kingdom_location' => $this->kingdomLocation,
                   'kingdom_req_cup_amt' => $this->kingdomRequiedCups,
-                  'created_at' => date('Y-m-d H:i:s')
+                  'created_at' => date('Y-m-d H:i:s'),
               ));
               if(!empty($kingdomId))
               {
@@ -92,12 +93,21 @@ class kingdomCreateAction extends baseAction
                     'user_trophies' => $user['relics'],
                     'kingdom_id' => $kingdomId,
                     'is_active' => 1,
-                    'created_at' => date('Y-m-d H:i:s')
+                    'created_at' => date('Y-m-d H:i:s'),
                 ));
                 $userLib->updateUser($this->userId, array(
                     'kingdom_id' => $kingdomId,
                     'gold' => ($user['gold'] - KINGDOM_GOLD_REQUIRED)
                 ));
+              }
+              $qv = $questLib->getQuestKingdomReward($this->userId, $this->androidVerId, $this->iosVerId);
+              if(empty($qv)){
+                $questLib->insertMasterQuestInventory(array(
+                  'quest_id' => 5,
+                  'time' => date('Y-m-d H:i:s'),
+                  'user_id' => $this->userId,
+                  'status' => CONTENT_ACTIVE,
+                  'created_at' => date('Y-m-d H:i:s')));
               }
               $kingdomUsers = $kingdomLib->getKingdomUsersList($kingdomId);
               $kingdomDetailsOnRelics = $kingdomLib->getKingdomUserDetailsOnRelics($kingdomId);
@@ -158,4 +168,3 @@ class kingdomCreateAction extends baseAction
     return $result;
   }
 }
-

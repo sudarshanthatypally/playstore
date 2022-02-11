@@ -49,7 +49,8 @@ class kingdomGetDetailAction extends baseAction{
     $kd= $kingdomLib->getKingdomTotalRelics($this->kingdomId);
     $requesterDetails= $kingdomLib->getKingdomUserDetailsWithUsersId($this->userId);
     $kingdomDetailsOnRelics= $kingdomLib->getKingdomUserDetailsOnRelics($this->kingdomId);
-    
+    $uCount=1;
+    //$user1to10 = $user11to20 = $user21to30 = $user31to40 = $user41to50 =0;
     foreach($kingdomDetailsOnRelics as $ku){
       $userDetails = $userLib->getUserDetail($ku['user_id']);
       $tempUsers = array();
@@ -61,6 +62,23 @@ class kingdomGetDetailAction extends baseAction{
       $tempUsers['user_trophies']=$userDetails['relics'];
       $tempUsers['donation']=$ku['donation'];
       $userList[] = $tempUsers;
+     /* $kingdomRankUser = $kingdomLib->getKingdomRankInventory($tempUsers['rank']);
+      if($uCount<=10){
+        $user1to10+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=11 && $uCount<=20){
+        $user11to20+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=21 && $uCount<=30){
+        $user21to30+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=31 && $uCount<=40){
+        $user31to40+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=41 && $uCount<=50){
+        $user41to50+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }*/
+      $uCount++;
     }
     if($requesterDetails['user_type']>=2){
       $kingdomRequestedDetailsOnRelics = $kingdomLib->getKingdomUserRequestedDetailsOnRelics($this->kingdomId);
@@ -78,6 +96,7 @@ class kingdomGetDetailAction extends baseAction{
         $tempRequestedUsers['user_total_gold'] = $userRDetails['gold'];
         $tempRequestedUsers['donation'] = $kru['donation'];
         $requestedUserList[] = $tempRequestedUsers;
+
       }
       foreach($kingdomKickedDetailsOnRelics as $kku)
       {
@@ -95,17 +114,22 @@ class kingdomGetDetailAction extends baseAction{
         $kickedUserList[] = $tempKickedUsers;
       }
     }
+    $kingdomRequestedDetailsOnRelics = $kingdomLib->getKingdomUserRequestedDetailsOnRelics($this->kingdomId);
+    //$userCntList=count($userList);
+    //$totalRelics= $user1to10 + $user11to20 + $user21to30+ $user31to40 +$user41to50;
+    $totalRelics= $kingdomLib->getKingdomRankRelicsTotal($this->kingdomId);
     $result['kingdom_id'] = $this->kingdomId;
     $result['kingdom_name'] = $kingdomDetails['kingdom_name'];
     $result['kingdom_type'] = $kingdomDetails['kingdom_type'];
     $result['kingdom_member_limit'] = $kingdomDetails['kingdom_limit'];
     $result['kingdom_shield_id'] = $kingdomDetails['kingdom_shield_id'];
     $result['kingdom_desc'] = $kingdomDetails['kingdom_desc'];
-    $result['trophies']=$kd['total'];
+    $result['trophies']=round($totalRelics); //$kd['total']; 
     $result['kingdom_location'] =  $kingdomDetails['kingdom_location'];
     $result['kingdom_req_cup_amt'] = $kingdomDetails['kingdom_req_cup_amt'];
     $result['kingdom_user_desc']="User Type Code = 0 : Requested, 1 : Member, 2 : Admin";
     //$userList[]=$userDetails;
+    $result['kingdom_user_count']=count($userList);
     $result['kingdom_userlist']=$userList;
     if($requesterDetails['user_type']>=2){
       $result['kingdom_requested_userlist']=$requestedUserList;

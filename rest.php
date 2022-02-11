@@ -1,7 +1,7 @@
 <?php
 /* *
-* Author: Sudarshan Thatypally
-* Date : 10-09-2020
+* Author: Abhijith Shetty
+* Date : 14-01-2013
 */
 //allowing Cross Domain Request
 header("Access-Control-Allow-Origin: *");

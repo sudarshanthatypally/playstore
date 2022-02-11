@@ -46,9 +46,10 @@ class kingdomGetListAction extends baseAction{
       $kingdomDetailsOnRelics= $kingdomLib->getKingdomUserDetailsOnRelicsCount($kingdom['kingdom_id']);
       if($kingdomDetailsOnRelics > 0){
         $totalRelics=$kingdomLib->getKingdomTotalRelics($kingdom['kingdom_id']);
-      
+        $totalUserRelics= $kingdomLib->getKingdomRankRelicsTotal($kingdom['kingdom_id']);
+        $totalUserTrophies= $kingdomLib->getKingdomUserTrophiesRelics($kingdom['kingdom_id']);
         $kingdomUserInfo = $temp = array();
-        $temp['kingdom_id'] = $kingdom['kingdom_id'];
+        $temp['kingdom_id'] = $kingdom['kingdom_id']; 
         $temp['kingdom_name'] = $kingdom['kingdom_name'];
         $temp['kingdom_desc'] = $kingdom['kingdom_desc'];
         $temp['kingdom_shield_id'] = $kingdom['kingdom_shield_id'];
@@ -56,10 +57,10 @@ class kingdomGetListAction extends baseAction{
         $temp['kingdom_location'] = $kingdom['kingdom_location'];
         $temp['kingdom_type'] = $kingdom['kingdom_type'];
         $temp['status'] = $kingdom['status'];
-        //$temp['trophies'] = $kingdom['trophies'];
-        $temp['trophies']= $kingdom['user_trophy'];
+        $temp['actual_trophies'] = round($totalUserTrophies['trophies']);
+        $temp['trophies']= round($totalUserRelics);
         $temp['total_donation']= $totalRelics['total_donation'];
-        $temp['kingdom_rank'] = $kingdom['srno'];
+        //$temp['kingdom_rank'] = $kingdom['srno'];
         
         
        /* $kingdomDetailsOnRelics= $kingdomLib->getKingdomUserDetailsOnRelics($kingdom['kingdom_id']);
@@ -81,8 +82,21 @@ class kingdomGetListAction extends baseAction{
         
       
     }
-    
+    //$price = array_column($result, 'trophies');
+
+    //array_multisort($price, SORT_DESC, $result);
+    array_multisort(array_column($result, 'trophies'), SORT_DESC, $result);
+    $i=1; $lv=null; $results=array();
+    foreach ($result as $v) {
+      $ranks = array();
+      //if ($v>$lv){ $i++; $lv=$v;}
+      $v['kingdom_rank']  = $i;
+      $ranks=$v;
+      $results[]=$ranks;
+      $i++;
+    }
+    //return $ranks;
     $this->setResponse('SUCCESS');
-    return array('kingdom_list' => $result);
+    return array('kingdom_list' => $results);
   }
 }

@@ -268,6 +268,38 @@ class quest{
     $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
     return $result;
   }
+  public function getQuestKingdomReward($userId){
+    
+      $sql = "SELECT * 
+      FROM quest_inventory qi
+      LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+      WHERE user_id=:userId AND quest_id=5
+      ORDER BY qi.quest_inventory_id DESC"; //AND qi.time > NOW() - INTERVAL 1 MONTH
+    
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+ /* public function getQuestUserStadium5Reward($userId){
+    
+    $sql = "SELECT * 
+    FROM quest_inventory qi
+    LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+    WHERE user_id=:userId AND quest_id=7
+    ORDER BY qi.quest_inventory_id DESC"; //AND qi.time > NOW() - INTERVAL 1 MONTH
+  
+  $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+  return $result;
+}*/
+public function getQuestUserStadium5Reward($userId){
+    $sql = "SELECT * 
+    FROM quest_inventory qi
+    LEFT JOIN master_quest AS mq ON mq.master_quest_id=qi.quest_id
+    WHERE user_id=:userId AND quest_id=7
+    ORDER BY qi.quest_inventory_id DESC"; 
+  
+  $result = database::doSelectOne($sql, array('userId'=>$userId));
+  return $result;
+}
   public function getQuestCollectFreeRewardClaimed($userId){
       $sql = "SELECT * 
       FROM quest_claim qc
@@ -319,6 +351,24 @@ class quest{
     $sql = "SELECT * 
     FROM quest_claim qc
     WHERE user_id=:userId AND quest_id=3
+    ORDER BY qc.quest_claim_id DESC";//AND qc.created_at > NOW() - INTERVAL 1 MONTH
+  
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getKingdomQuestClaimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=5
+    ORDER BY qc.quest_claim_id DESC";//AND qc.created_at > NOW() - INTERVAL 1 MONTH
+  
+    $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId
+    return $result;
+  }
+  public function getQuestUserStadium5Claimed($userId){
+    $sql = "SELECT * 
+    FROM quest_claim qc
+    WHERE user_id=:userId AND quest_id=7
     ORDER BY qc.quest_claim_id DESC";//AND qc.created_at > NOW() - INTERVAL 1 MONTH
   
     $result = database::doSelectOne($sql, array('userId'=>$userId));//,'andVerId'=>$andVerId, 'iosVerId'=>$iosVerId

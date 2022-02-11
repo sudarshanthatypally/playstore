@@ -58,6 +58,9 @@ class userGetDetailAction extends baseAction{
         'status' => CONTENT_ACTIVE,
         'created_at' => date('Y-m-d H:i:s')));
     }
+    
+
+
     if($this->levelUp==1){
       $userLib->updateUser($this->userId, array('level_up' => 0));
     }
@@ -69,6 +72,26 @@ class userGetDetailAction extends baseAction{
 
 
     $userDetail = $userLib->getUserDetail($this->userId);
+    
+    /*$qUserStadiumv = $questLib->getQuestUserStadium5Reward($this->userId);
+    if($qUserStadiumv['slide_count']>=$qUserStadiumv['slide_maxvalue']){
+      $questData= $questLib->getBattleQuestData(7,$this->userId);
+      if(empty($questData)){
+        $questLib->insertMasterQuestInventory(array(
+          'quest_id' => 7,
+          'time' => date('Y-m-d H:i:s'),
+          'user_id' => $this->userId,
+          'status' => CONTENT_ACTIVE,
+          'slide_count'=>1,
+          'created_at' => date('Y-m-d H:i:s')));
+      }else{
+        $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => $userDetail['master_stadium_id']));
+        if($userDetail['master_stadium_id']>=5){
+          $questLib->updateQuestInventory($questData['quest_id'], $this->userId, array('slide_count' => 5));
+        } 
+      }
+      
+    }*/
 
     if($userDetail['max_stadium_id']=="" || $userDetail['max_stadium_id']==0){
       $userLib->updateUser($this->userId, array('max_stadium_id' => $userDetail['master_stadium_id']));
@@ -100,6 +123,8 @@ class userGetDetailAction extends baseAction{
     $result['xp'] = $userDetail['xp'];
     $result['facebook_id'] = $userDetail['facebook_id'];
     $result['google_id'] = $userDetail['google_id'];
+    $result['is_alert'] = $userDetail['is_alert'];
+    $result['is_login'] = $userDetail['is_login'];
     $result['kingdom_id'] = $userDetail['kingdom_id'];
     $result['game_center_id'] = $userDetail['game_center_id'];
     if(!empty($userDetail['user_uid'])){
@@ -178,6 +203,7 @@ class userGetDetailAction extends baseAction{
           $tempProperty['property_name'] = $cardProperty['property_name'];
           $tempProperty['property_value'] = $cardProperty['card_property_value'];
           $tempProperty['is_child'] = $cardProperty['is_child'];
+          $tempProperty['show_info'] = $cardProperty['show_info'];
           $cardPropertyInfo[] = $tempProperty;
         }
       }
@@ -211,15 +237,15 @@ class userGetDetailAction extends baseAction{
     $result['is_storybook_tutorial_completed'] = $userDetail['is_storybook_tutorial_completed'];
     $result['tutorial_seq'] = $userDetail['tutorial_seq'];
     $result['editname_count'] = $userDetail['editname_count'];
-    //$result['android_update'] = true;
-    //$result['ios_update'] = true;
-    //$result['android_appversion'] = "1.0.22";
-    //$result['ios_appversion'] = "1.0.15";
-    
+    //$result['android_update'] = false;
+    //$result['ios_update'] = false;
+
+
     $serverConfig=$userLib->getServerConfig();
 
     $result['android_appversion'] = $serverConfig['android_version'];
     $result['ios_appversion'] = $serverConfig['ios_version'];
+
     if(!empty($result['android_appversion']) && !empty($this->androidVerId)){
       $userLib->updateUser($this->userId, array('current_version' => "a-".$this->androidVerId));
       if(version_compare($result['android_appversion'],$this->androidVerId, '<=')){
@@ -235,16 +261,16 @@ class userGetDetailAction extends baseAction{
         $result['ios_update'] = true;
       }
     }else{
-      $result['android_update'] = true;
-      $result['ios_update'] = true;
+      $result['android_update'] = false;
+      $result['ios_update'] = false;
     }
     //$result['updatedurl'] = "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776 \n Android=Coming Soon";
     $result['editname_cost'] = 500;
-    $result['android_updatedurl']="https://play.google.com/store/apps/details?id=com.wss.epikoregal";
+    $result['android_updatedurl']="Share Links \n  Android=Coming Soon";
     $result['ios_updatedurl']= "Share Links \n iOS=https://apps.apple.com/gb/app/epiko-regal/id1576311776";
     $result['invite_baseurl']="https://epikoregal.com/";
     $result['invite_prefixurl']="friendlybattle.page.link";
-    $result['maintainanceon'] = $serverConfig['is_server'];
+    $result['maintainanceon'] =$serverConfig['is_server'];
     $result['level_up'] = $userDetail['level_up'];
     $result['stadium_level_up'] = $userDetail['stadium_level_up'];
     $result['max_stadium_id'] = $userDetail['max_stadium_id'];

@@ -78,6 +78,20 @@ class kingdomSendInitialize extends baseInitialize{
       "default"=>"",
       "description"=>"Kingdom Message"
     );
+    $parameter["kingdomMsgRequestType"] = array(
+      "name"=>"request_type",
+      "type"=>"text",
+      "required"=>false,
+      "default"=>"",
+      "description"=>"request_type"
+    );
+    $parameter["masterCardId"] = array(
+      "name"=>"master_card_id",
+      "type"=>"text",
+      "required"=>false,
+      "default"=>"",
+      "description"=>"master_card_id"
+    );
     return $parameter;
   }
 }

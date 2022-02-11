@@ -32,6 +32,49 @@ class kingdom{
     $result = database::doSelect($sql);
     return $result;
   }
+  public function getKingdomRankInventory($userCnt, $options=array())
+  {
+    $sql = "SELECT *
+            FROM kingdom_ranking_inventory as kri
+            WHERE min<=:userCnt
+            ORDER BY kingdom_ranking_id DESC";
+    $result = database::doSelectOne($sql,array('userCnt' => $userCnt));
+    return $result;
+  }
+  public function getKingdomRankRelicsTotal($kingdomId, $options=array())
+  {
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    $kingdomLib = autoload::loadLibrary('queryLib', 'kingdom');
+    $kingdomDetailsOnRelics= $kingdomLib->getKingdomUserDetailsOnRelics($kingdomId);
+    $uCount=1;
+    $user1to10 = $user11to20 = $user21to30 = $user31to40 = $user41to50 =0;
+    foreach($kingdomDetailsOnRelics as $ku){
+      $userDetails = $userLib->getUserDetail($ku['user_id']);
+      $tempUsers = array();
+      $tempUsers['rank'] = $ku['srno'];
+      $userList[] = $tempUsers;
+      $kingdomRankUser = $kingdomLib->getKingdomRankInventory($tempUsers['rank']);
+      if($uCount<=10){
+        $user1to10+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=11 && $uCount<=20){
+        $user11to20+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=21 && $uCount<=30){
+        $user21to30+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=31 && $uCount<=40){
+        $user31to40+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      if($uCount>=41 && $uCount<=50){
+        $user41to50+=$userDetails['relics'] * ($kingdomRankUser['percentage'] / 100);
+      }
+      $uCount++;
+    }
+    $totalRelics= $user1to10 + $user11to20 + $user21to30+ $user31to40 +$user41to50;
+    return $totalRelics;
+  }
+
   public function insertKingdom($options=array())
   {
     $sql = "INSERT INTO kingdom ";
@@ -41,6 +84,7 @@ class kingdom{
     $result = database::doInsert($sql, $options);
     return $result;
   }
+
   public function insertKingdomMsg($options=array())
   {
     $sql = "INSERT INTO kingdom_messages ";
@@ -50,16 +94,53 @@ class kingdom{
     $result = database::doInsert($sql, $options);
     return $result;
   }
+  public function insertKingdomCardRequest($options=array())
+  {
+    $sql = "INSERT INTO card_request_inventory ";
+    $sql .= "( ".implode(", ", array_keys($options))." ) VALUES ";
+    $sql .= "( :".implode(", :", array_keys($options))." )";
+
+    $result = database::doInsert($sql, $options);
+    return $result;
+  }
+  public function getCardRequestDetail($userId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM kingdom_messages as km
+            INNER JOIN card_request_inventory as cri ON cri.msg_id=km.km_id
+            WHERE cri.user_id = :userId";
+
+    $result = database::doSelectOne($sql, array('userId'=>$userId));
+    return $result;
+  }
+  public function getRequestedOfCardRequestDetail($userId,$requestType, $currentTime, $msgId, $options=array())
+  {
+    if(empty($msgId)){
+      $sql = "SELECT *
+            FROM card_request_inventory
+            WHERE user_id=:userId AND request_type=:requestType AND end_time>='".$currentTime."'
+            ORDER BY card_request_inventory_id ASC";
+    }else{
+      $sql = "SELECT *
+              FROM card_request_inventory
+              WHERE user_id=:userId AND request_type=:requestType AND end_time>='".$currentTime."' AND msg_id=".$msgId."
+              ORDER BY card_request_inventory_id ASC";
+    }
+    $result = database::doSelectOne($sql, array('userId'=>$userId,'requestType'=>$requestType));
+    return $result;
+  }
+  
   public function getKingdomMsgList($kingdomId, $lastMsgId, $options=array())
   {
     if($lastMsgId==0 || empty($lastMsgId)){
      /* $sql = "SELECT *
             FROM kingdom_messages
             WHERE kingdom_id = :kingdomId";*/
+            
       $sql = "SELECT *
       FROM (SELECT *
             FROM kingdom_messages
-            WHERE kingdom_id = :kingdomId
+            WHERE kingdom_id = :kingdomId AND battle_state!=4
             HAVING room_id IS NULL
             UNION
               SELECT *
@@ -159,6 +240,33 @@ class kingdom{
     $result = database::doUpdate($sql, $options);
     return $result;
   }
+  public function updateCardReqMessage($cardRequestInventoryId, $options=array())
+  {
+    $sql = "UPDATE card_request_inventory SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", "); 
+    $sql .= " WHERE card_request_inventory_id=:cardRequestInventoryId"; //msg_id=:msgId AND 
+    //$options['msgId'] = $msgId;
+    $options['cardRequestInventoryId'] = $cardRequestInventoryId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
+  public function updateCardReqMessageLastId($msgId, $options=array())
+  {
+    $sql = "UPDATE card_request_inventory SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", "); 
+    $sql .= " WHERE msg_id=:msgId";
+    $options['msgId'] = $msgId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
   public function getKingdomUserDetail($userId, $options=array())
   {
     $sql = "SELECT *
@@ -168,7 +276,30 @@ class kingdom{
     $result = database::doSelectOne($sql, array('userId'=>$userId));
     return $result;
   }
-  
+  public function getUserCardDetail($userId, $masterCardId, $options=array())
+  {
+    $sql = "SELECT *
+            FROM user_card as uc
+            WHERE uc.user_id = :userId AND uc.master_card_id=:masterCardId";
+
+    $result = database::doSelectOne($sql, array('userId'=>$userId, 'masterCardId'=> $masterCardId)); 
+    return $result;
+  }
+  public function updateUserCard($userId, $masterCardId, $options=array())
+  {
+    $sql = "UPDATE user_card SET ";
+    foreach($options as $key=>$value){
+      $sql .= $key."= :".$key.", ";
+    }
+    $sql = rtrim($sql, ", ");
+    $sql .= " WHERE user_id =:userId ";
+    $sql .= "AND master_card_id=:masterCardId";
+    $options['userId'] = $userId;
+    $options['masterCardId'] = $masterCardId;
+
+    $result = database::doUpdate($sql, $options);
+    return $result;
+  }
   public function deleteKingdomRequestedMsg($userId, $kingdomId=0, $msgType, $options=array())
   { 
     if($msgType==7){
@@ -248,13 +379,29 @@ class kingdom{
                                   WHERE u.user_id = km.sent_by)";
 
 	  $result = database::doDelete($sql);
-    return $result;
+    return $result; 
   }
   //Delete kingdom requested messages(only) after 1 day(24 hours)
   public function deleteMsgByDate($options=array())
   {
     $sql = "DELETE FROM kingdom_messages
             WHERE msg_type = 7 AND created_at < NOW() - INTERVAL 1 DAY";
+
+	  $result = database::doDelete($sql);
+    return $result;
+  }
+  public function deleteKindomMsgById($kmId,$options=array())
+  {
+    $sql = "DELETE FROM kingdom_messages
+            WHERE km_id=$kmId";
+
+	  $result = database::doDelete($sql);
+    return $result;
+  }
+  public function deleteKindomMsgByExceptId($currId, $originalId, $options=array())
+  {
+    $sql = "DELETE FROM kingdom_messages
+            WHERE km_id!=$currId AND km_id!=$originalId AND msg_type=2";
 
 	  $result = database::doDelete($sql);
     return $result;
@@ -295,7 +442,7 @@ class kingdom{
             FROM kingdom_users u,(SELECT @a:= 0) AS a
             WHERE u.kingdom_id = :kingdomId AND u.user_type > 0 AND u.user_type < 5
             ORDER BY u.user_trophies DESC"; */
-    $sql ="SELECT ku.*,ROW_NUMBER() OVER (ORDER BY u.relics DESC) AS srno
+    $sql ="SELECT ku.*,ROW_NUMBER() OVER (ORDER BY u.relics DESC) AS srno, u.relics as trophies
             FROM user u
 			LEFT JOIN kingdom_users ku ON ku.user_id=u.user_id
             WHERE ku.kingdom_id =:kingdomId AND ku.user_type > 0 AND ku.user_type < 5
@@ -303,6 +450,18 @@ class kingdom{
     $result = database::doSelect($sql, array('kingdomId' => $kingdomId));
     return $result;
   }
+
+  public function getKingdomUserTrophiesRelics($kingdomId, $options=array()){
+    $sql = "SELECT SUM(u.relics) as trophies
+  FROM user u
+LEFT JOIN kingdom_users ku ON ku.user_id=u.user_id
+  WHERE ku.kingdom_id =:kingdomId AND ku.user_type > 0 AND ku.user_type < 5
+  ORDER BY u.relics DESC";
+    $result = database::doSelectOne($sql, array('kingdomId' => $kingdomId));
+    return $result;
+  }
+  
+
   public function getKingdomUserRequestedDetailsOnRelics($kingdomId, $options=array()){
     $sql ="SELECT u.*,ROW_NUMBER() OVER (ORDER BY u.user_trophies DESC) AS srno
             FROM kingdom_users u,(SELECT @a:= 0) AS a

@@ -110,6 +110,13 @@ class userUpdateInitialize extends baseInitialize{
       "default" => "",
       "description" => "editNameCost"
     );
+    $parameter["isLogin"] = array(
+      "name" => "is_login",
+      "type" => "text", 
+      "required" => false,
+      "default" => "",
+      "description" => "is_login"
+    );
     return $parameter;
   }
 }

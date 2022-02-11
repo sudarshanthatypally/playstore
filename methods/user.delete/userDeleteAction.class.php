@@ -1,12 +1,12 @@
 <?php
 /**
  * Author : Abhijth Shetty
- * Date   : 08-11-2019
- * Desc   : This is a controller file for debugUnlockCards Action 
+ * Date   : 29-12-2017
+ * Desc   : This is a controller file for userGetDetail Action
  */
-class debugUnlockCardsAction extends baseAction{
-  /**
-   * @OA\Get(path="?methodName=debug.unlockCards", tags={"Debug"}, 
+class userDeleteAction extends baseAction{
+	/**
+   * @OA\Get(path="?methodName=user.delete", tags={"Users"}, 
    * @OA\Parameter(parameter="applicationKey", name="applicationKey", description="The applicationKey specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Parameter(parameter="user_id", name="user_id", description="The user ID specific to this event",
@@ -30,16 +30,19 @@ class debugUnlockCardsAction extends baseAction{
    */
   public function execute()
   {
-    $cardLib = autoload::loadLibrary('queryLib', 'card');
-    $masterLib = autoload::loadLibrary('queryLib', 'master');
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    date_default_timezone_set('Asia/Kolkata');
     $result = array();
-    
-    // $masterStadium = $masterLib->getMasterStadiumList();
-    for($i=1; $i<=5; $i++){ //update master stadium for each card updates
-      //$cardLib->cardUnlock($this->userId, $i);
-      $cardLib->cardUnlockWithVersion($this->userId, $i, $this->androidVerId, $this->iosVerId);
+
+    $userDetail = $userLib->getUserDetail($this->userId);
+    $userLib->updateUser($this->loginUserId, array('is_login'=> 1));
+    if($this->isDel==1){
+      $deleteUser = $userLib->deleteUser($this->userId); 
     }
+    
+    $result['user_id'] = $this->userId;
+
     $this->setResponse('SUCCESS');
     return $result;
-  }  
+  }
 }

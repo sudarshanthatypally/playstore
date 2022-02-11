@@ -1,6 +1,6 @@
 <?php
   /*************************************************************************
-   * Author: Sudarshan Thatypally
+   * Author: Abhijith Shetty
    * Description: Including autoloader class and initiating core functions.
    */ 	 
      require_once(dirname(__FILE__).'/base/autoload.class.php');

@@ -20,11 +20,32 @@ class userLoginInitialize extends baseInitialize{
     $parameter["deviceToken"] = array(
       "name" => "device_token",
       "type" => "text",
-      "required" => true,
+      "required" => false,
       "default" => "",
       "description" => "device_token"
     );
 
+    $parameter["googleId"] = array(
+      "name" => "googleid",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "googleid"
+    );
+    $parameter["gamecenterId"] = array(
+      "name" => "gamecentreid",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "gamecentreid"
+    );
+    $parameter["platformId"] = array(
+      "name" => "platform_id",
+      "type" => "text",
+      "required" => false,
+      "default" => "",
+      "description" => "platform_id: 1=google_id(android), 2=gamecenter_id(ios)"
+    );
     $parameter["iosPushToken"] = array(
       "name" => "ios_push_token",
       "type" => "text",

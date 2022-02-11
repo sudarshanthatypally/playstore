@@ -72,6 +72,7 @@ class kingdomSearchAction extends baseAction{
       foreach ($kingdomList as $kingdom)
       {
         $totalRelics=$kingdomLib->getKingdomTotalRelics($kingdom['kingdom_id']);
+        $totalUserRelics= $kingdomLib->getKingdomRankRelicsTotal($kingdom['kingdom_id']);
         $kingdomUserInfo = $temp = array();
         $temp['kingdom_id'] = $kingdom['kingdom_id'];
         $temp['kingdom_name'] = $kingdom['kingdom_name'];
@@ -82,7 +83,7 @@ class kingdomSearchAction extends baseAction{
         $temp['kingdom_type'] = $kingdom['kingdom_type'];
         $temp['status'] = $kingdom['status'];
         //$temp['trophies'] = $kingdom['trophies'];
-        $temp['trophies']= $totalRelics['total'];
+        $temp['trophies']= round($totalUserRelics);
         $temp['total_donation']= $totalRelics['total_donation'];
         $temp['kingdom_rank'] = $kingdom['srno'];
         $kingdomDetailsOnRelics= $kingdomLib->getKingdomUserDetailsOnRelicsCount($kingdom['kingdom_id']);

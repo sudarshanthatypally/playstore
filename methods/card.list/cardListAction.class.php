@@ -135,6 +135,7 @@ class cardListAction extends baseAction{
           //$tempProperty['property_update_bonus'] = 0;
           $tempProperty['property_update_bonus'] = !empty($propertyValue['card_property_value'])?($propertyValue['card_property_value']-$tempProperty['property_value']):0;
           $tempProperty['is_child'] = $cardProperty['is_child'];
+          $tempProperty['show_info'] = $cardProperty['show_info'];
           $cardPropertyInfo[] = $tempProperty;
         }
       }

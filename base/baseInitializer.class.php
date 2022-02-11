@@ -39,6 +39,7 @@ class baseInitialize extends restBase
 
   public function isValidAuthToken()
   {
+    date_default_timezone_set('Asia/Kolkata');
     $sql = "SELECT count(*) as count from user where user_id = ".$this->userId." and access_token = '".$this->accessToken."'";
     $result = database::doSelectOne($sql);
 

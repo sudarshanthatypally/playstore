@@ -38,11 +38,12 @@ class userLoginAction extends baseAction{
    */
   public function execute()
   {
+    print_log(date('d-m-y h:i:s').":: user.login");
+    print_log("---------------------------------------------------------------------------------------------------------------------");
     date_default_timezone_set('Asia/Kolkata');
     $userLib = autoload::loadLibrary('queryLib', 'user');
-    $cardLib = autoload::loadLibrary('queryLib', 'card');
-    $deckLib = autoload::loadLibrary('queryLib', 'deck');
     $result = array();
+
 
     $accessToken = md5(md5(rand(11111, 555555)).md5(time()));
     if($this->deviceToken == "")
@@ -54,9 +55,105 @@ class userLoginAction extends baseAction{
     if($this->deviceToken != "")
     {
       $deviceUser = $userLib->getUserForDeviceToken($this->deviceToken);
+      //android
+      if(!empty($deviceUser['google_id'])){
+        $userLib->updateUser($deviceUser['user_id'], array('device_token'=>$deviceUser['device_token']."_".$deviceUser['user_id']));
+      }
+      //ios
+      if(!empty($deviceUser['game_center_id'])){
+        $userLib->updateUser($deviceUser['user_id'], array('device_token'=>$deviceUser['device_token']."_".$deviceUser['user_id']));
+      }
+      print_log("du::".json_encode($deviceUser));
+      $googleUser = $userLib->getUserForGoogleId($this->googleId);
+      $gamecenterUser = $userLib->getUserForGameCenterId($this->gamecenterId);
+      //print_log($this->googleId);
+      //print_log("gu::".json_encode($googleUser));
       $nm=empty($this->name)?"GUEST":$this->name;
-      if(empty($deviceUser))
+      if($this->platformId==1 && ((empty($deviceUser) && empty($googleUser)) || (empty($deviceUser) && $this->googleId=="")) )
       {
+        print_log("In1");
+        $randVal = rand(7,9); 
+        $user_uid = $userLib->secure_random_string($randVal);
+        $userId = $userLib->insertUser(array(
+                    'name' => $this->name,
+                    'type' => USER_TYPE_GUEST,
+                    'device_token' => $this->deviceToken,
+                    'ios_push_token' => $this->iosPushToken,
+                    'android_push_token' => $this->androidPushToken,
+                    'access_token' => $accessToken,
+                    'master_stadium_id' => DEFAULT_STADIUM,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'user_uid' => strtoupper($user_uid),
+                    'seq_id'=> rand(1,10),
+                    'status' => CONTENT_ACTIVE));
+
+        $userLib->processRegistration($userId);
+
+        if(!empty($this->platformId)){
+          print_log("google::platform");
+          $is_alert=$userLib->getUserSameLoginDetailWithPlatform($this->deviceToken,$this->platformId);
+        }else{
+          $is_alert=$userLib->getUserSameLoginDetail($this->deviceToken);
+        }
+        //strtok($mystring, '_');
+        $is_in=0;
+        foreach($is_alert as $ia){
+          if(!empty($ia['google_id'])){
+            $isAlertId= $ia['user_id'];
+            $isAlertName= !empty($ia['name'])?$ia['name']:"Guest_".$ia['user_id'];
+            $isAlertLevel=$ia['level_id'];
+            $isGoogleId=$ia['google_id'];
+          }
+          
+        }
+        if(!empty($isGoogleId)){
+          $userLib->updateUser($userId, array("is_alert" => 1));
+          $userLib->updateUser($userId, array('is_login'=> 1));
+          $is_in=1;
+        }
+      }elseif($this->platformId==2 && ((empty($deviceUser) && empty($gamecenterUser)) || (empty($deviceUser) && $this->gamecenterId==""))){
+        print_log("gamecenter::In1");
+        $randVal = rand(7,9); 
+        $user_uid = $userLib->secure_random_string($randVal);
+        $userId = $userLib->insertUser(array(
+                    'name' => $this->name,
+                    'type' => USER_TYPE_GUEST,
+                    'device_token' => $this->deviceToken,
+                    'ios_push_token' => $this->iosPushToken,
+                    'android_push_token' => $this->androidPushToken,
+                    'access_token' => $accessToken,
+                    'master_stadium_id' => DEFAULT_STADIUM,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'user_uid' => strtoupper($user_uid),
+                    'seq_id'=> rand(1,10),
+                    'status' => CONTENT_ACTIVE));
+
+        $userLib->processRegistration($userId);
+
+        if(!empty($this->platformId)){
+          print_log("gamecenter::platform");
+          $is_alert=$userLib->getUserSameLoginDetailWithPlatform($this->deviceToken,$this->platformId);
+        }else{
+          $is_alert=$userLib->getUserSameLoginDetail($this->deviceToken);
+        }
+        
+
+        //strtok($mystring, '_');
+        $is_in=0;
+        foreach($is_alert as $ia){
+          if(!empty($ia['game_center_id'])){
+            $isAlertId= $ia['user_id'];
+            $isAlertName= !empty($ia['name'])?$ia['name']:"Guest_".$ia['user_id'];
+            $isAlertLevel=$ia['level_id'];
+            $isGameCenterId=$ia['game_center_id'];
+          }
+        }
+        if(!empty($isGameCenterId)){
+          $userLib->updateUser($userId, array("is_alert" => 1));
+          $userLib->updateUser($userId, array('is_login'=> 1));
+          $is_in=1;
+        }  
+      }elseif(empty($deviceUser) && empty($this->platformId)){
         $randVal = rand(7,9);
         $user_uid = $userLib->secure_random_string($randVal);
         $userId = $userLib->insertUser(array(
@@ -73,11 +170,35 @@ class userLoginAction extends baseAction{
                     'status' => CONTENT_ACTIVE));
 
         $userLib->processRegistration($userId);
-      } else {
+      }else{
+        print_log("In3");
         $userId = $deviceUser['user_id'];
       }
     }
- 
+    if($this->googleId != "")
+    {
+      $googleUser = $userLib->getUserForGoogleId($this->googleId);
+      if(!empty($googleUser['user_id'])){
+        print_log("In2");
+        print_log($googleUser['user_id']);
+        $userId = $googleUser['user_id'];
+      } 
+    }
+    if($this->gamecenterId != "")
+    {
+      $gamecenterUser = $userLib->getUserForGameCenterId($this->gamecenterId);
+      if(!empty($gamecenterUser['user_id'])){
+        print_log("game::In2");
+        print_log($gamecenterUser['user_id']);
+        $userId = $gamecenterUser['user_id'];
+      } 
+    }
+    /*elseif(!empty($googleUser['user_id'])){
+        print_log("In2");
+        print_log($googleUser['user_id']);
+        $userId = $googleUser['user_id'];
+      } */
+
     if($userId > 0)
     {
       $userDetail = $userLib->getUserDetail($userId);
@@ -89,48 +210,17 @@ class userLoginAction extends baseAction{
 
       $userDetail = $userLib->getUserDetail($userId);
 
-      //------------------------------------- deck -----------------------------
-     /* $userDeckLst = $deckLib->getUserDeckDetail($userId);
-      if(empty($userDeckLst)){
-        $resultDeck = array();
-        $DeskList = $cardLib->getUserCardForActiveDeck($userId, DECK_ACTIVE); 
-        $deckFLst=array();
-        $resultDeck['current_deck_number']=0;
-        for($i=0;$i<=3;$i++){
-          $deckLst=array();
-          $deckLst['deck_id']=$i;
-          $j=0;
-          if($j<=7){
-            $oppdeckList=array();
-            foreach ($DeskList as $dcard) 
-            {
-              $cardPropertyInfo2 = $temp2 = array();
-              $temp2['master_card_id'] = $dcard['master_card_id'];
-              $oppdeckList[] = $temp2;
-              $j++;
-            }
-          }
-          $deckLst['cards']=$oppdeckList;
-          $deckFLst[]=$deckLst;
-        }
-        
-        $resultDeck['deck_details']= $deckFLst;
-        
-        $deckLib->insertUserDeck(array(
-          'user_id' => $userId,
-          'deck_data' => json_encode($resultDeck),
-          'created_at' => date('Y-m-d H:i:s'),
-          'status' => CONTENT_ACTIVE
-        ));
-        
-      }*/
-      
-      //------------------------------------- deck -----------------------------
       $this->setResponse('SUCCESS');
-      return array('user_id' => $userId, "access_token" => $userDetail['access_token']);
+      /*if($is_in==1){
+        return array('user_id' => $userId, "access_token" => $userDetail['access_token'], "is_alert"=>$userDetail['is_alert'], "google_id"=>$userDetail['google_id']);
+      }else{*/
+        return array('user_id' => $userId, "access_token" => $userDetail['access_token']);
+     // }
+      
     }
-
+    print_log("---------------------------------------------------------------------------------------------------------------------");
     $this->setResponse('SUCCESS');
     return $result;
+
   }
 }

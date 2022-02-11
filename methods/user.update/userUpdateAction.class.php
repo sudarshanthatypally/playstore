@@ -121,6 +121,10 @@ class userUpdateAction extends baseAction{
     {
       $paramList['kingQueen_status'] = $this->kingQueen_status;
     }
+    if($this->isLogin != "")
+    {
+      $paramList['is_login'] = $this->isLogin;
+    }
     if($this->IOS_update != "")
     {
       $paramList['IOS_update'] = $this->IOS_update;

@@ -328,7 +328,24 @@ public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rari
     $result = database::doSelect($sql, array('userId' => $userId));
     return $result;
   }
+  public function getUserCardListForRequestedUser($userId, $is_sunday=0, $options=array())
+  {
+    if($is_sunday==1){
+      $sql = "SELECT user_card.*, master_card.title, master_card.master_stadium_id, master_card.is_available, master_card.card_rarity_type, master_card.card_type, master_card.android_version_id, master_card.ios_version_id, master_card.card_description
+            FROM user_card
+            INNER JOIN master_card ON user_card.master_card_id = master_card.master_card_id
+            WHERE user_card.user_id = :userId AND (master_card.card_rarity_type=1 || master_card.card_rarity_type=2 || master_card.card_rarity_type=3)";
+    }else{
+      $sql = "SELECT user_card.*, master_card.title, master_card.master_stadium_id, master_card.is_available, master_card.card_rarity_type, master_card.card_type, master_card.android_version_id, master_card.ios_version_id, master_card.card_description
+            FROM user_card
+            INNER JOIN master_card ON user_card.master_card_id = master_card.master_card_id
+            WHERE user_card.user_id = :userId AND (master_card.card_rarity_type=1 || master_card.card_rarity_type=2)";
+    }
+    
 
+    $result = database::doSelect($sql, array('userId' => $userId));
+    return $result;
+  }
   public function getDefaultMasterCardList($options=array())
   {
     /*$sql = "SELECT *
@@ -495,7 +512,7 @@ public function getMasterCardListBasedOnStadiumAndRarity($masterStadiumId, $rari
   public function getCardPropertyForMasterCardAndLevelIdAndCommonLevel($masterCard, $levelId, $basicLevelId, $options=array())
   {
     $sql="WITH cte AS (
-      SELECT DISTINCT plu.card_property_id,cp.master_card_id,cp.property_id,cp.property_name,plu.card_property_value,plu.level_id,cp.is_child, cp.is_default,cp.status,RANK() 
+      SELECT DISTINCT plu.card_property_id,cp.master_card_id,cp.property_id,cp.property_name,plu.card_property_value,plu.level_id,cp.is_child,cp.show_info, cp.is_default,cp.status,RANK() 
       OVER (PARTITION BY plu.card_property_id ORDER BY plu.level_id DESC)  ran
       FROM card_property_level_upgrade AS plu
       INNER JOIN card_property AS cp ON cp.card_property_id=plu.card_property_id
@@ -666,6 +683,48 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
     $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
     return $result;
   }
+  /*public function getMasterCardListForRequestWithVersion($stadiumId, $andVer, $iosVer, $options=array())
+  {
+    if(!empty($andVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE INET_ATON(android_version_id)<=INET_ATON('".$andVer."')
+            ORDER BY card_rarity_type,master_card_id ASC";
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE INET_ATON(ios_version_id)<=INET_ATON('".$iosVer."')
+            ORDER BY card_rarity_type,master_card_id ASC";
+    }else{
+      $sql = "SELECT *
+            FROM master_card
+            WHERE is_available=1
+            ORDER BY card_rarity_type,master_card_id ASC";
+    }
+    $result = database::doSelect($sql,array('stadiumId' => $stadiumId));
+    return $result;
+  }*/
+  public function getMasterCardListForRequestWithVersion($andVer, $iosVer, $rarityId, $options=array())
+  {
+    if(!empty($andVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE INET_ATON(android_version_id)<=INET_ATON('".$andVer."') AND is_available=1 AND card_rarity_type=:rarityId
+            ORDER BY master_card_id ASC";
+    }elseif(!empty($iosVer)){
+      $sql = "SELECT *
+            FROM master_card
+            WHERE INET_ATON(ios_version_id)<=INET_ATON('".$iosVer."') AND is_available=1 AND card_rarity_type=:rarityId
+            ORDER BY master_card_id ASC";
+    }else{
+      $sql = "SELECT *
+            FROM master_card
+            WHERE is_available=1 AND card_rarity_type=:rarityId
+            ORDER BY master_card_id ASC";
+    }
+    $result = database::doSelect($sql,array('rarityId'=> $rarityId));
+    return $result;
+  }
   public function getFutureMasterCardList($userId, $options=array())
   {
     $sql = "SELECT *
@@ -822,10 +881,10 @@ public function getUserCardUnlockLevelOnRarityTypeAndMasterCardId($masterCardId,
       /*if(!empty($defaultCard['android_version_id']) && !empty($androidVerId)){  
         if(version_compare($defaultCard['android_version_id'],$androidVerId, '<=')){*/
           $userCard = $this->getUserCardDetailForMasterCardId($userId, $defaultCard['master_card_id']);
-          //print_log("---------------------------------Card Data List-------------------------------------------------");
-          //print_log($defaultCard['master_card_id']);
+          print_log("---------------------------------Card Data List-------------------------------------------------");
+          print_log($defaultCard['master_card_id']);
           //print_log($userCard);
-          //print_log("--------------------------------End Card Data List----------------------------------------------");
+          print_log("--------------------------------End Card Data List----------------------------------------------");
           $userCard = $this->getUserCardForUserIdAndMasterCardId($userId, $defaultCard['master_card_id']);
           $userCardLevel = $this->getUserCardUnlockLevelOnRarityTypeAndMasterCardId($defaultCard['master_card_id']);
           $cardLevelId=(empty($userCardLevel['level_id']))?DEFAULT_CARD_LEVEL_ID:$userCardLevel["level_id"];

@@ -1,17 +1,21 @@
 <?php
 /**
  * Author : Abhijth Shetty
- * Date   : 08-11-2019
- * Desc   : This is a controller file for debugUnlockCards Action 
+ * Date   : 29-12-2017
+ * Desc   : This is a controller file for userValidateAccount Action
  */
-class debugUnlockCardsAction extends baseAction{
-  /**
-   * @OA\Get(path="?methodName=debug.unlockCards", tags={"Debug"}, 
+class userValidateAccountAction extends baseAction{
+	/**
+   * @OA\Get(path="?methodName=user.validateAccount", tags={"Users"}, 
    * @OA\Parameter(parameter="applicationKey", name="applicationKey", description="The applicationKey specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Parameter(parameter="user_id", name="user_id", description="The user ID specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Parameter(parameter="access_token", name="access_token", description="The access_token specific to this event",
+   *   @OA\Schema(type="string"), in="query", required=false),
+   * @OA\Parameter(parameter="google_id", name="google_id", description="The google_id specific to this event",
+   *   @OA\Schema(type="string"), in="query", required=false),
+   * @OA\Parameter(parameter="gamecenter_id", name="gamecenter_id", description="The gamecenter_id specific to this event",
    *   @OA\Schema(type="string"), in="query", required=false),
    * @OA\Response(response="200", description="Success, Everything worked as expected"),
    * @OA\Response(response="201", description="api_method does not exists"),
@@ -30,16 +34,28 @@ class debugUnlockCardsAction extends baseAction{
    */
   public function execute()
   {
-    $cardLib = autoload::loadLibrary('queryLib', 'card');
-    $masterLib = autoload::loadLibrary('queryLib', 'master');
+    $userLib = autoload::loadLibrary('queryLib', 'user');
+    date_default_timezone_set('Asia/Kolkata');
     $result = array();
-    
-    // $masterStadium = $masterLib->getMasterStadiumList();
-    for($i=1; $i<=5; $i++){ //update master stadium for each card updates
-      //$cardLib->cardUnlock($this->userId, $i);
-      $cardLib->cardUnlockWithVersion($this->userId, $i, $this->androidVerId, $this->iosVerId);
+
+    $userDetail = $userLib->getUserDetail($this->userId);
+    //print_log(json_encode("userDetails::".$userDetail));
+    $UserDetailsWithGoogleId=$userLib->getUserForGoogleId($this->google_id);
+    if(!empty($userDetail['google_id']) && $userDetail['google_id']==$this->google_id){
+      $isValid=1;
+    }elseif(empty($userDetail['google_id']) && empty($UserDetailsWithGoogleId)){
+      $isValid=1;
+    }elseif(!empty($UserDetailsWithGoogleId) && $userDetail['google_id']!=$UserDetailsWithGoogleId['google_id']){
+      $isValid=1;
+    }elseif(!empty($userDetail['google_id']) && !empty($UserDetailsWithGoogleId)){
+      $isValid=1;
+    }elseif(!empty($userDetail['google_id']) && empty($UserDetailsWithGoogleId)){
+      $isValid=0;
     }
+    
+    $result['is_valid'] = $isValid;
+
     $this->setResponse('SUCCESS');
     return $result;
-  }  
+  }
 }

@@ -100,6 +100,8 @@ class cardGetMasterListAction extends baseAction{
           $cardPropertyValue = $cardLib->getCardPropertyValue($card['master_card_id'],$cardlvl['level_id'],$cardProperty['card_property_id']);
           $tempProperty['property_value'] = $cardPropertyValue['card_property_value'];
           $tempProperty['is_child'] = $cardProperty['is_child'];
+          $tempProperty['show_info'] = $cardProperty['show_info'];
+          
           //$tempProperty['property_value'] = $cardProperty['card_property_value'];
           $cardPropertyInfo[] = $tempProperty;
         }
